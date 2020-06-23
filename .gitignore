@@ -1,0 +1,10 @@
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+*.jld2
+*.png
+*.tex
+*.pdf
+*.gif
+/deps/deps.jl
+/docs/build
