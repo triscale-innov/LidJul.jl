@@ -72,8 +72,9 @@ Note that the full Neumann case can be treated by several iterative methods (inc
 
 ## A simple CFD application of the solver (Lid Cavity). 
 
-Finally the GMG solver is used in the Julia translation fo the classical *Benjamin Seibold*'s `MIT18086_NAVIERSTOKES` matlab implementation that simulates a square lid cavity. See the details from the following site: 
-http://www-math.mit.edu/~seibold/()
+Finally the GMG solver is used in the Julia translation fo the classical *Benjamin Seibold*'s `MIT18086_NAVIERSTOKES` matlab implementation that simulates a square lid cavity. See the details here: 
+http://math.mit.edu/~gs/cse/codes/mit18086_navierstokes.pdf
+
 
 From this directory run the following command to launch this 2D CFD simulation :
 
