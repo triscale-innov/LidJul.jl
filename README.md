@@ -9,18 +9,17 @@
 [![Build Status](https://travis-ci.org/triscale-innov/LidJul.jl.svg?branch=master)](https://travis-ci.org/triscale-innov/LidJul.jl)
 [![codecov.io](http://codecov.io/github/triscale-innov/LidJul.jl/coverage.svg?branch=master)](http://codecov.io/github/triscale-innov/LidJul.jl?branch=master)-->
 
-*Disclaimer!!!! This is a Work In Progress that explores the performance of different solvers for Poisson's equation. It corresponds to internal exploratory experiments made by [TriScale innov](www.triscale-innov.com) with the objective to build Julia hands-on sessions for its professional training programs.*
-
+*Disclaimer: this is a Work In Progress that explores the performance of different different solvers for Poisson's equation. Parts of this work may be included as hands-on sessions in TriScale innov's future professional training programs.*
 
 
 ## A simple Geometric Multi-Grid Julia implementation for a 2D Poisson's equation. 
-
-This Julia repo compares the performance of various linear solvers available in classical Julia packages with a *basic Geometric Multi Grid* (GMG) solver adapted from *Harald Köstler*'s implementation described in the following ref:
+This Julia repo compares the performance of different linear solvers available in classical Julia packages with a simple *Geometric Multi Grid* (GMG) solver adapted from *Harald Köstler*'s implementation:
 
 "Multigrid HowTo: A simple Multigrid solver in C++ in less than 200 lines of code"
 https://www10.cs.fau.de/publications/reports/TechRep_2008-03.pdf
 
-The `src/poisson2DGMG` and `src/GSSmoother.jl` files contain the Julia implementation of a solver for Poisson's equation defined on a 2D unit square with `n x n` steps and a basic FD scheme. Depending on the boundary conditions that can be chosen to be of `Dirichlet` or `Neumann` type for the 4 edges of the square (left,right,bottom,top), one can launch the resolution of Poisson's equation for a collection of solvers via the command (from this directory) :
+The `src/poisson2DGMG` and `src/GSSmoother.jl` files contain the Julia implementation of a solver for Poisson's equation defined on a 2D unit square with `n x n` steps and a basic FD scheme. Boundary conditions can be chosen to be of `Dirichlet` or `Neumann` type for the 4 edges of the square (left,right,bottom,top). One can launch the
+resolution of the Poisson's equation with a collection of solvers via the command (from this directory):
 
 
 ```julia
@@ -31,19 +30,17 @@ By default the solver is launched for `n=128` and `DNDN` boundary conditions. Th
 
 ```
 function go()
-    #Choose a power of two
-    n=128
+    n=128 #Choose a power of two
     #Choose boundary conditions 
     # bc=(neumann,neumann,neumann,neumann)
     bc=(dirichlet,neumann,dirichlet,neumann)
-    # bc=(dirichlet,dirichlet,dirichlet,dirichlet)
     ...
 ```
 
 ![](docs/figs/makie128DNDN.png)
 
 
-The code should return a collection of measurements corresponding to the CPU time required by each solver, the number of iterations for the iterative solvers as well as the corresponding residual.
+The code should return a collection of measurements corresponding to the CPU time required by each solver, the number of iterations for the iterative solvers as well as the corresponding residual. The CPU time the `init_time` corresponds to the time required by the solver construction for a given matrix, and the `solver_time` corresponds to the time required by the solution of a linear system with a given RHS.
 
 
 
@@ -66,7 +63,7 @@ The code should return a collection of measurements corresponding to the CPU tim
 │ PCGDiagonalPrecond │ 2.945E-04 │ 5.147E+00   │ 5.148E+00  │ 6.132E-09 │ 602     │
 └────────────────────┴───────────┴─────────────┴────────────┴───────────┴─────────┘
 ```
-One can see in particular that the present GMG solver outperforms the available AMG solvers (Algebraic Multi-Grid). The TTSolver is a direct Poisson solver which is restricted to separable Poisson coefficient. 
+One can see in particular that the present GMG solver (`GMG_GSSmoother`) outperforms the available AMG solvers (Algebraic Multi-Grid) by a large factor (x10). The TTSolver is a direct Poisson solver which is restricted to separable Poisson coefficients. 
 
 The code also produces some convergence curves and bar charts for comparing CPU times. 
 
