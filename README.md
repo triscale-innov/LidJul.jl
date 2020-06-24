@@ -1,16 +1,24 @@
 # LidJul.jl
 
-*Disclaimer: this is a Work In Progress that explores the performance of different Poisson's solver. Some part of this work may be included in future TriScale innov's hands-on sessions.*
+![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)<!--
+![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)
+![Lifecycle](https://img.shields.io/badge/lifecycle-stable-green.svg)
+![Lifecycle](https://img.shields.io/badge/lifecycle-retired-orange.svg)
+![Lifecycle](https://img.shields.io/badge/lifecycle-archived-red.svg)
+![Lifecycle](https://img.shields.io/badge/lifecycle-dormant-blue.svg)
+[![Build Status](https://travis-ci.org/triscale-innov/LidJul.jl.svg?branch=master)](https://travis-ci.org/triscale-innov/LidJul.jl)
+[![codecov.io](http://codecov.io/github/triscale-innov/LidJul.jl/coverage.svg?branch=master)](http://codecov.io/github/triscale-innov/LidJul.jl?branch=master)-->
 
-www.triscale-innov.com
+*Disclaimer: this is a Work In Progress that explores the performance of different different solvers for Poisson's equation. Parts of this work may be included as hands-on sessions in TriScale innov's future professional training programs.*
+
 
 ## A simple Geometric Multi-Grid Julia implementation for a 2D Poisson's equation. 
-This Julia repo compares the performance of different linear solvers available in classical Julia packages with a simple *Geometric Multi Grid* (GMG) solver adapted from the *Harald Köstler*'s implementation:
+This Julia repo compares the performance of different linear solvers available in classical Julia packages with a simple *Geometric Multi Grid* (GMG) solver adapted from *Harald Köstler*'s implementation:
 
 "Multigrid HowTo: A simple Multigrid solver in C++ in less than 200 lines of code"
 https://www10.cs.fau.de/publications/reports/TechRep_2008-03.pdf
 
-The `src/poisson2DGMG` and `src/GSSmoother.jl` files contain the Julia's GMG implementation  corresponding to a 2D Poisson's equation defined on a unit square with `n x n` steps and a basic FD scheme. Boundary conditions can be chosen to be of `Dirichlet` or `Neumann` type for the 4 edges of the square (left,right,bottom,top). One can launch the
+The `src/poisson2DGMG` and `src/GSSmoother.jl` files contain the Julia implementation of a solver for Poisson's equation defined on a 2D unit square with `n x n` steps and a basic FD scheme. Boundary conditions can be chosen to be of `Dirichlet` or `Neumann` type for the 4 edges of the square (left,right,bottom,top). One can launch the
 resolution of the Poisson's equation with a collection of solvers via the command (from this directory):
 
 
@@ -18,7 +26,7 @@ resolution of the Poisson's equation with a collection of solvers via the comman
 include("test/poisson2D.jl")
 ```
 
-By default the solver is launched for a `n=128` and `DNDN` boundary conditions. These values can be modified in the `go()` function defined in `test/poisson2D.jl`. Note that n must be a power of two.
+By default the solver is launched for `n=128` and `DNDN` boundary conditions. These values can be modified in the `go()` function defined in `test/poisson2D.jl`. Note that `n` must be a power of two.
 
 ```
 function go()
@@ -32,7 +40,7 @@ function go()
 ![](docs/figs/makie128DNDN.png)
 
 
-The code should return a collection of measurements corresponding to the CPU time required by each solvers, the number of iterations for the iterative solvers as well as the corresponding residual. The CPU time the `init_time` corresponds to the time required by the solver construction for a given matrix, and the `solver_time` corresponds to the time required by the solution of a linear system with a given RHS.
+The code should return a collection of measurements corresponding to the CPU time required by each solver, the number of iterations for the iterative solvers as well as the corresponding residual. The CPU time the `init_time` corresponds to the time required by the solver construction for a given matrix, and the `solver_time` corresponds to the time required by the solution of a linear system with a given RHS.
 
 
 
@@ -57,7 +65,7 @@ The code should return a collection of measurements corresponding to the CPU tim
 ```
 One can see in particular that the present GMG solver (`GMG_GSSmoother`) outperforms the available AMG solvers (Algebraic Multi-Grid) by a large factor (x10). The TTSolver is a direct Poisson solver which is restricted to separable Poisson coefficients. 
 
-The code also produces some convergence curves and bar charts for comparing CPU time. 
+The code also produces some convergence curves and bar charts for comparing CPU times. 
 
 
 ![](docs/figs/allconvergence_128DNDN.svg)
@@ -70,8 +78,8 @@ Note that the full Neumann case can be treated by several iterative methods (inc
 
 ## A simple CFD application of the solver (Lid Cavity). 
 
-Finally the GMG solver is used in the Julia translation fo the classical *Benjamin Seibold*'s `MIT18086_NAVIERSTOKES` matlab implementation that simulates a square lid cavity. See the details here: 
-http://math.mit.edu/~gs/cse/codes/mit18086_navierstokes.pdf
+Finally the GMG solver is used in a Julia translation of *Benjamin Seibold*'s classical `MIT18086_NAVIERSTOKES` matlab implementation that simulates a square lid cavity. See the details here: 
+[http://math.mit.edu/~gs/cse/codes/mit18086_navierstokes.pdf](http://math.mit.edu/~gs/cse/codes/mit18086_navierstokes.pdf)
 
 
 From this directory run the following command to launch this 2D CFD simulation :
@@ -84,14 +92,3 @@ include("test/mit_implicit.jl")
 
 ![](docs/figs/test.gif)
 
-
-
-
-![Lifecycle](https://img.shields.io/badge/lifecycle-experimental-orange.svg)<!--
-![Lifecycle](https://img.shields.io/badge/lifecycle-maturing-blue.svg)
-![Lifecycle](https://img.shields.io/badge/lifecycle-stable-green.svg)
-![Lifecycle](https://img.shields.io/badge/lifecycle-retired-orange.svg)
-![Lifecycle](https://img.shields.io/badge/lifecycle-archived-red.svg)
-![Lifecycle](https://img.shields.io/badge/lifecycle-dormant-blue.svg) -->
-[![Build Status](https://travis-ci.com/{GHUSER}/LidJul.jl.svg?branch=master)](https://travis-ci.com/{GHUSER}/LidJul.jl)
-[![codecov.io](http://codecov.io/github/{GHUSER}/LidJul.jl/coverage.svg?branch=master)](http://codecov.io/github/{GHUSER}/LidJul.jl?branch=master)
