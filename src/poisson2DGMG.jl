@@ -6,6 +6,7 @@ export PoissonGMG,solve!
 using SparseArrays
 using LinearAlgebra
 using BenchmarkTools
+using LoopVectorization
 
 struct PoissonGMG{SMOOTHER}
     Sol::Vector{Array{Float64,2}}
@@ -204,6 +205,7 @@ function residual(lev,g)
     sqrt(res)
 end
 
+# using LoopVectorization
 
 function restrict_residual(lev,g)
     rl1=g.RHS[lev+1]
@@ -221,13 +223,14 @@ function restrict_residual(lev,g)
 
     @inline finer(i,j)=fres(rl,sl,i,j,ih2,nx,ny)
 
-     @simd for j=2:ncols-1
+    @simd for j=2:ncols-1
         fj=2j-2
 
-        @simd for i=2:nrows-1
+        for i=2:nrows-1
             fi=2i-2
 
              @inbounds rl1[i,j]=0.25*(finer(fi,fj)+finer(fi+1,fj)+finer(fi,fj+1)+finer(fi+1,fj+1))
+            #  @inbounds rl1[i,j]=0.25*(finer(fi,fj)+finer(fi+1,fj)+finer(fi,fj+1)+finer(fi+1,fj+1))
         end
     end
 
@@ -241,17 +244,18 @@ function interpolate_correct(lev,g::PoissonGMG)
     uf=g.Sol[lev-1]
     uc=g.Sol[lev]
     (nrows,ncols)=size(uc)
+    ncm1=ncols-1
+    nrm1=nrows-1
 
-    for j=2:ncols-1
-            # Threads.@threads for j=2:ncols-1
+    @inbounds for j=2:ncm1
         fj=2j-1
-        @simd for i=2:nrows-1
+        @fastmath for i=2:nrm1
             fi=2i-1
-            @inbounds v=uc[i,j]
-            @inbounds uf[fi  ,fj  ]+=v
-            @inbounds uf[fi-1,fj  ]+=v
-            @inbounds uf[fi  ,fj-1]+=v
-            @inbounds uf[fi-1,fj-1]+=v
+             v=uc[i,j]
+             uf[fi  ,fj  ]+=v
+             uf[fi-1,fj  ]+=v
+             uf[fi  ,fj-1]+=v
+             uf[fi-1,fj-1]+=v
         end
     end
 

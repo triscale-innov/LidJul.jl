@@ -6,5 +6,6 @@
 *.tex
 *.pdf
 *.gif
+*.svg
 /deps/deps.jl
 /docs/build

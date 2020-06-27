@@ -37,14 +37,14 @@ function mit18086_navierstokes()
 
    Re = 1.e4     # Reynolds number
    dt = 0.5e-2;    # time step
-   tf = 100e-0;    # final time
+   tf = 50e-0;    # final time
    lx = 1.0;       # width of box
    ly = 1.0;       # height of box
    nx = 128 ;      # number of x-gridpoints
    ny = 128 ;      # number of y-gridpoints
    #nx = 41;
    #ny = 41;
-   nsteps = 250;  # number of steps with graphic output
+   nsteps = 120;  # number of steps with graphic output
    #-----------------------------------------------------------------------
    nt = ceil(tf/dt); #dt = tf/nt;
    @show nt,dt
@@ -288,7 +288,7 @@ function plotflow_makie(nx,ny,hx,hy,x,y,U,V,Ue,Ve,P,Q,Tlq)
    uvn=Node([rand(size(Ue)...),rand(size(Ve)...)])
    un=Node(rand(size(Ue)...))
    vn=Node(rand(size(Ve)...))
-   lift(a->println(size(a),norm(a)),qn)
+   # lift(a->println(size(a),norm(a)),qn)
    as=2
 
 

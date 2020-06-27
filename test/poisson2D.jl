@@ -1,3 +1,4 @@
+using LidJul
 using LinearAlgebra
 using SparseArrays
 using BenchmarkTools
@@ -5,8 +6,6 @@ using Makie
 using IterativeSolvers
 using Preconditioners
 using Random
-using JLD2
-using LidJul
 
 
 function addmeasurements(msm,solvername,ti,ts,res,iterations=[])
@@ -164,7 +163,7 @@ end
 function go()
     #Choose a power of two
     n=128
-    #Choose boundary conditions 
+    #Choose boundary conditions
     # bc=(neumann,neumann,neumann,neumann)
     bc=(dirichlet,neumann,dirichlet,neumann)
     # bc=(dirichlet,dirichlet,dirichlet,dirichlet)
@@ -179,7 +178,7 @@ function go()
     p=pref
 
     pmax=maximum(p)-minimum(p)
-  
+
     p./=pmax
 
     s=Makie.surface(x,y,p)

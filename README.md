@@ -23,6 +23,7 @@ resolution of the Poisson's equation with a collection of solvers via the comman
 
 
 ```julia
+] activate .
 include("test/poisson2D.jl")
 ```
 
@@ -86,6 +87,7 @@ From this directory run the following command to launch this 2D CFD simulation :
 
 
 ```julia
+] activate .
 include("test/mit_implicit.jl")
 ```
 
