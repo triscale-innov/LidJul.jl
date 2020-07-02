@@ -2,7 +2,7 @@
 # "Multigrid HowTo: A simple Multigrid solver in C++ in less than 200 lines of code"
 #  https://www10.cs.fau.de/publications/reports/TechRep_2008-03.pdf
 
-export PoissonGMG,solve!
+export PoissonGMG,solve!,boundary_coeff,treatboundary,fres,residual,restrict_residual,interpolate_correct,smooth,maxlevels
 using SparseArrays
 using LinearAlgebra
 using BenchmarkTools

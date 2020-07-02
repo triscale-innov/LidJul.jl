@@ -17,16 +17,26 @@ end
     @inbounds denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
 end
 
+using LoopVectorization
 
 
 @inline function smooth_line(nrm1,j,i1,sl,rl,ih2,denom)
-    @fastmath @inbounds @simd for i=i1:2:nrm1
-        sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
+    if nrm1 >= 0
+        # @show (nrm1 >= 0)
+    # @fastmath @inbounds @simd for i=i1:2:nrm1
+        @avx for i=i1:2:nrm1
+            sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
+        end
+    else
+        @show nrm1
+        @fastmath @inbounds @simd for i=i1:2:nrm1
+            sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
+        end
     end
 end
 
 
-@inline function smooth_seq(nrows,ncols,sl,rl,ih2,)
+@inline function smooth_seq(nrows,ncols,sl,rl,ih2)
     denom=1/(4ih2)
     nrm1=nrows-1
 
@@ -42,11 +52,38 @@ end
 end
 
 
+@inline function smooth_cart(nrows,ncols,sl,rl,ih2)
+    denom=1/(4ih2)
+    nrm1=nrows-1
+    ncm1=ncols-1
+    for j=2:ncm1
+        @avx for i=2:nrm1
+            sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1])) 
+        end
+    end
+
+    # @inbounds for j=2:2:ncols-1
+    #     smooth_line(nrm1,j,2,sl,rl,ih2,denom)
+    #     smooth_line(nrm1,j+1,3,sl,rl,ih2,denom)
+    # end
+    # @inbounds for j=2:2:ncols-1
+    #     smooth_line(nrm1,j,3,sl,rl,ih2,denom)
+    #     smooth_line(nrm1,j+1,2,sl,rl,ih2,denom)
+    # end
+
+end
+
+
+
 function smooth(sl,rl,a::GSSmoother)
     ih2=a.invh2
     (nrows,ncols)=size(sl)
     @assert(size(rl)==size(sl))
     denom=1/(4ih2)
+    # smooth_cart(nrows,ncols,sl,rl,ih2)
     smooth_seq(nrows,ncols,sl,rl,ih2)
     return
 end
+
+    
+

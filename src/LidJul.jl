@@ -22,6 +22,7 @@ module LidJul
     # include("BlockJacobiSmoother.jl")
 
     include("poisson2DGMG.jl")
+    include("poisson2DGMG_new.jl")
     # include("RedBlackArray.jl")
     # include("poisson2DGMGRB.jl")
     include("TensorialOperator.jl")
