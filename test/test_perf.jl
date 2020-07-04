@@ -1,6 +1,7 @@
 using BenchmarkTools
 using LoopVectorization
 using LinearAlgebra
+using Random
 
 #Original functions (smooth_line and smooth_seq using @simd)
 @inline function smooth_line(nrm1,j,i1,sl,rl,ih2,denom)
@@ -40,7 +41,9 @@ RBArray(nx,ny) = RBArray(Array{Float64,3}(undef,nx>>>1,2,ny))
 #Helper functions to acess the the RB arrays with 2 indexes rb[i,j] 
 @inline Base.getindex(rb::RBArray,i,j) = rb.data[(i+1)>>>1,1+isodd(i+j),j]
 @inline Base.setindex!(rb::RBArray,value,i,j) = rb.data[(i+1)>>>1,1+isodd(i+j),j]=value
-
+Base.size(rb::RBArray) = (size(rb.data)[1]*2,size(rb.data)[3])
+Base.fill!(rb::RBArray,val) = fill!(rb.data,val)
+Base.eltype(b::RBArray) = Float64
 
 
 #RBArray from Array
@@ -93,37 +96,48 @@ end
 
 
 
+@inline function smooth_line_rb(nrm1s2,j,di,rbout,rbin,sl,rl,ih2,denom)
+    @avx for i2 in 1:nrm1s2
+        sl[i2+di,rbout,j]=denom*(rl[i2+di,rbout,j]+ih2*(sl[i2+di,rbin,j-1]+sl[i2+di,rbin,j+1]+sl[i2,rbin,j]+sl[i2+1,rbin,j]))
+    end
+end
+
+# #Version with broadcast (slow but suitable to test CuArrays)
+@inline function smooth_line_rb_brcst(nrm1s2,j,di,rbout,rbin,sl,rl,ih2,denom)
+    ib=1+di
+    ie=nrm1s2+di
+    @inbounds @fastmath @views @. sl[ib:ie,rbout,j]=denom*(rl[ib:ie,rbout,j]+ih2*(sl[ib:ie,rbin,j-1]+sl[ib:ie,rbin,j+1]+sl[1:nrm1s2,rbin,j]+sl[2:nrm1s2+1,rbin,j]))
+end
+
+
+
+
 
 #Specialized smooth_seq method for RedBlack arrays.
 #Note that non specialized smooth_seq method should produce the same result(but slowly)
 @inline function smooth_seq(nrows,ncols,slrb::RBArray,rlrb::RBArray,ih2)
     denom=1/(4ih2)
-    nrm1=nrows-1
+    nrm1,ncm1=nrows-1,ncols-1
+    nrm1s2=nrm1 >>> 1
     sl,rl=slrb.data,rlrb.data
 
     #evens from odds
-    @inbounds for j in 2:2:ncols-1 
-        @avx for i2 in 1:nrm1 >>> 1
-            sl[i2,1,j]=denom*(rl[i2,1,j]+ih2*(sl[i2,2,j-1]+sl[i2,2,j+1]+sl[i2,2,j]+sl[i2+1,2,j]))
-        end
-        @avx for i2 in 1:nrm1 >>> 1
-            sl[i2+1,1,j+1]=denom*(rl[i2+1,1,j+1]+ih2*(sl[i2+1,2,j]+sl[i2+1,2,j+2]+sl[i2,2,j+1]+sl[i2+1,2,j+1]))
-        end
+    @inbounds for j in 2:2:ncm1 
+        smooth_line_rb(nrm1s2,j  ,0,1,2,sl,rl,ih2,denom)
+        smooth_line_rb(nrm1s2,j+1,1,1,2,sl,rl,ih2,denom)
     end
      #odds from evens
-    @inbounds for j in 2:2:ncols-1 
-        @avx for i2 in 1:nrm1 >>> 1
-            sl[i2+1,2,j]=denom*(rl[i2+1,2,j]+ih2*(sl[i2+1,1,j-1]+sl[i2+1,1,j+1]+sl[i2,1,j]+sl[i2+1,1,j]))
-        end
-        @avx for i2 in 1:nrm1 >>> 1
-            sl[i2,2,j+1]=denom*(rl[i2,2,j+1]+ih2*(sl[i2,1,j]+sl[i2,1,j+2]+sl[i2,1,j+1]+sl[i2+1,1,j+1]))
-        end
+     @inbounds for j in 2:2:ncm1 
+        smooth_line_rb(nrm1s2,j  ,1,2,1,sl,rl,ih2,denom)
+        smooth_line_rb(nrm1s2,j+1,0,2,1,sl,rl,ih2,denom)
     end
 end
 
 
+
+
 #function that call the benchmarks
-function go_rb(n)
+function benchmark_smooth_gs_rb(n)
     @assert iseven(n)
     # initialize two 2D arrays
     sl=rand(n+2,n+2)
@@ -137,23 +151,267 @@ function go_rb(n)
     ih2=rand()
     smooth_seq(nrows,ncols,sl,rl,ih2)
     smooth_seq(nrows,ncols,slrb,rlrb,ih2)
-    ss=Array{Float64,2}(slrb)
-
-    @show norm(sl-Array{Float64,2}(slrb))
-    # display(ss)
-    # display(sl)
-    # display(ss-sl)
+    res=norm(sl-Array{Float64,2}(slrb))
+ 
     # #The actual timings
+    # bs=@btime smooth_seq($nrows,$ncols,$slrb,$rlrb,$ih2)
     tsimd=@belapsed smooth_seq($nrows,$ncols,$sl,$rl,$ih2)
     trb=@belapsed smooth_seq($nrows,$ncols,$slrb,$rlrb,$ih2)
-    @show tsimd,trb
+    @show n,res,tsimd,trb,tsimd/trb
+    nothing
+end
+
+function interpolate_correct!(uf,uc)
+    (nrows,ncols)=size(uc)
+    # @show size(uc)
+    ncm1=ncols-1
+    nrm1=nrows-1
+
+    @inbounds @fastmath @simd for j=2:ncm1
+        fj=2j-1
+        for i=2:nrm1
+            fi=2i-1
+             v=uc[i,j]
+             uf[fi  ,fj  ]+=v
+             uf[fi-1,fj  ]+=v
+             uf[fi  ,fj-1]+=v
+             uf[fi-1,fj-1]+=v
+        end
+    end
 
 end
 
-# go_rb(4)
-go_rb(128)
-go_rb(256)
-go_rb(512)
+
+@inline function scatter!(df,v,i,fj)
+    df[i-1,1,fj-1]+=v 
+    df[i,1,fj]+=v
+    df[i-1,2,fj]+=v
+    df[i,2,fj-1]+=v
+end
+
+function interpolate_correct!(uf::RBArray,uc::RBArray)
+    (nrows,ncols)=size(uc)
+    # @show size(uc)
+    ncm1=ncols-1
+    nrm1=nrows-1
+
+    df,dc=uf.data,uc.data
+
+    ncm1s2=ncm1>>>1
+    nrm1s2=nrm1>>>1
+
+    @inbounds @fastmath for j2=1:ncm1s2
+         for i2=1:nrm1s2
+            # @inbounds @simd for j2=1:ncm1>>>1
+            #     @fastmath @simd for i2=1:nrm1>>>1
+            v1,v2,v3,v4=dc[i2,1,2j2],dc[i2+1,2,2j2],dc[i2,2,2j2+1],dc[i2+1,1,2j2+1]
+
+            df[2i2-1,1,4j2-2]+=v1
+            df[2i2  ,1,4j2-2]+=v2
+
+            df[2i2  ,1,4j2-1]+=v1 
+            df[2i2+1,1,4j2-1]+=v2
+            
+            df[2i2-1,1,4j2  ]+=v3
+            df[2i2  ,1,4j2  ]+=v4
+
+            df[2i2  ,1,4j2+1]+=v3
+            df[2i2+1,1,4j2+1]+=v4
+
+
+
+            df[2i2-1,2,4j2-1]+=v1
+            df[2i2,  2,4j2-2]+=v1
+
+            df[2i2  ,2,4j2-1]+=v2
+            df[2i2+1,2,4j2-2]+=v2
+
+            df[2i2-1,2,4j2+1]+=v3
+            df[2i2,  2,4j2  ]+=v3
+
+            df[2i2  ,2,4j2+1]+=v4
+            df[2i2+1,2,4j2  ]+=v4
+
+       
+        end     
+    end
+
+    # @inbounds @simd for j2=1:ncm1>>>1
+    #     @fastmath @simd for i2=1:nrm1>>>1
+    #         v1,v2,v3,v4=dc[i2,1,2j2],dc[i2+1,2,2j2],dc[i2,2,2j2+1],dc[i2+1,1,2j2+1]
+
+    #         df[2i2-1,1,4j2-2]+=v1
+    #         df[2i2  ,1,4j2-1]+=v1
+    #         df[2i2-1,2,4j2-1]+=v1
+    #         df[2i2,  2,4j2-2]+=v1
+
+    #         df[2i2  ,1,4j2-2]+=v2
+    #         df[2i2+1,1,4j2-1]+=v2
+    #         df[2i2  ,2,4j2-1]+=v2
+    #         df[2i2+1,2,4j2-2]+=v2
+
+        
+    #         df[2i2-1,1,4j2  ]+=v3
+    #         df[2i2  ,1,4j2+1]+=v3
+    #         df[2i2-1,2,4j2+1]+=v3
+    #         df[2i2,  2,4j2  ]+=v3
+
+             
+    #         df[2i2  ,1,4j2  ]+=v4
+    #         df[2i2+1,1,4j2+1]+=v4
+    #         df[2i2  ,2,4j2+1]+=v4
+    #         df[2i2+1,2,4j2  ]+=v4
+
+    #         # scatter!(df,v1,2i2,4j2-1)
+    #         # scatter!(df,v2,2i2+1,4j2-1)
+    #         # scatter!(df,v3,2i2,4j2+1)
+    #         # scatter!(df,v4,2i2+1,4j2+1)
+    #     end     
+    # end
+
+
+
+
+    # @inbounds @simd for j2=1:ncm1>>>1
+    #     @fastmath @simd for i2=1:nrm1>>>1
+    #         v1,v2,v3,v4=dc[i2,1,2j2],dc[i2+1,2,2j2],dc[i2,2,2j2+1],dc[i2+1,1,2j2+1]
+
+    #         scatter!(df,v1,2i2,4j2-1)
+    #         scatter!(df,v2,2i2+1,4j2-1)
+    #         scatter!(df,v3,2i2,4j2+1)
+    #         scatter!(df,v4,2i2+1,4j2+1)
+    #     end     
+    # end
+
+end
+
+#function that call the benchmarks
+function benchmark_interpolate_rb(nf)
+    @assert iseven(nf)
+    # initialize two 2D arrays (fine and coarse)
+    nc=nf>>>1
+    uf=rand(nf+2,nf+2)
+    uc=rand(nc+2,nc+2)
+    # the following blocks check if smooth_seq and smooth_seq_avx
+    # return the same result 
+    ufrb=RBArray(uf)
+    ucrb=RBArray(uc)
+    interpolate_correct!(uf,uc)
+    interpolate_correct!(ufrb,ucrb)
+    res=norm(uf-Array{Float64,2}(ufrb))
+    @show res
+    # #The actual timings
+    tsimd=@belapsed interpolate_correct!($uf,$uc)
+    trb=@belapsed interpolate_correct!($ufrb,$ucrb)
+    @show "interp",nf,res,tsimd,trb,tsimd/trb
+    nothing
+end
+
+@inline function fres(x,y,i,j,ih2,nx,ny)
+    # @show x[i,j]+ih2*(y[i+1,j]+y[i,j+1]+y[i,j-1]+y[i-1,j]-eltype(x)(4)*y[i,j])
+    # @show x[i,j]+ih2*(y[i+1,j]+y[i,j+1]+y[i,j-1]+y[i-1,j]-eltype(x)(4)*y[i,j])
+    # x[i,j]+ih2*(y[i+1,j]+y[i,j+1])
+    @inbounds x[i,j]+ih2*(y[i+1,j]+y[i,j+1]+y[i,j-1]+y[i-1,j]-eltype(x)(4)*y[i,j])
+end
+
+#rlc = rl coarse
+function restrict_residual!(rlc,slf,rlf,ih2)
+   
+    (nrows,ncols) = size(rlc)
+    (nx,ny) = (nrows-1,ncols-1)
+    fill!(rlc,0.)
+
+    @inline finer(i,j)=fres(rlf,slf,i,j,ih2,nx,ny)
+    oneOverFour=eltype(rlc)(1/4)
+
+    @simd for j=2:ncols-1
+        fj=2j-2
+        for i=2:nrows-1
+            fi=2i-2
+            # rlc[i,j]=oneOverFour*(finer(fi,fj)+finer(fi+1,fj))
+            # rlc[i,j]=oneOverFour*(finer(fi+1,fj+1))
+             @inbounds rlc[i,j]=oneOverFour*(finer(fi,fj)+finer(fi+1,fj)+finer(fi,fj+1)+finer(fi+1,fj+1))
+        end
+    end
+end
+
+@inline fres_ee(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,1,fj]+ih2*(y[i  ,2,fj]+y[i,2,fj+1]+y[i,2,fj-1]+y[i+1,2,fj]-4.0*y[i,1,fj])
+@inline fres_oe(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,2,fj]+ih2*(y[i  ,1,fj]+y[i,1,fj+1]+y[i,1,fj-1]+y[i-1,1,fj]-4.0*y[i,2,fj])
+@inline fres_eo(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,2,fj]+ih2*(y[i+1,1,fj]+y[i,1,fj+1]+y[i,1,fj-1]+y[i  ,1,fj]-4.0*y[i,2,fj])
+@inline fres_oo(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,1,fj]+ih2*(y[i  ,2,fj]+y[i,2,fj+1]+y[i,2,fj-1]+y[i-1,2,fj]-4.0*y[i,1,fj])
+
+#rlc = rl coarse
+function restrict_residual!(rlc::RBArray,slf::RBArray,rlf::RBArray,ih2)
+   
+    (nrows,ncols) = size(rlc)
+    (nx,ny) = (nrows-1,ncols-1)
+    fill!(rlc,0.)
+
+    @inline finer(i,j)=fres(rlf,slf,i,j,ih2,nx,ny)
+    oneOverFour=eltype(rlc)(1/4)
+    four=eltype(rlc)(4)
+    x,y=rlf.data,slf.data
+
+
+    @simd for j=2:ncols-1
+        fj=2j-2
+        for i=2:nrows-1
+            fi=2i-2
+            @inbounds rlc[i,j]=oneOverFour*(
+                fres_ee(x,y,i-1,fj,ih2,nx,ny)+
+                fres_oe(x,y,i,fj,ih2,nx,ny)+
+                fres_eo(x,y,i-1,fj+1,ih2,nx,ny)+
+                fres_oo(x,y,i,fj+1,ih2,nx,ny)
+                # fres_e(x,y,i,fj+1,ih2,nx,ny)
+                # rlf[fi,fj]+ih2*(slf[fi+1,fj]+slf[fi,fj+1]+slf[fi,fj-1]+slf[fi-1,fj]-four*slf[fi,fj])+
+                # rlf[fi+1,fj]+ih2*(slf[fi+2,fj]+slf[fi+1,fj+1]+slf[fi+1,fj-1]+slf[fi  ,fj]-four*slf[fi+1,fj])+
+                # rlf[fi,fj+1]+ih2*(slf[fi+1,fj+1]+slf[fi,fj+2]+slf[fi,fj  ]+slf[fi-1,fj+1]-four*slf[fi,fj+1])+
+                # rlf[fi+1,fj+1]+ih2*(slf[fi+2,fj+1]+slf[fi+1,fj+2]+slf[fi+1,fj  ]+slf[fi  ,fj+1]-four*slf[fi+1,fj+1])
+            )
+        end
+    end
+end
+
+#function that call the benchmarks
+function benchmark_restrict_rb(nf)
+    @assert iseven(nf)
+    # initialize two 2D arrays (fine and coarse)
+    nc=nf>>>1
+    Random.seed!(1234);
+
+    slf=rand(nf+2,nf+2)
+    rlf=rand(nf+2,nf+2)
+    rlc=rand(nc+2,nc+2)
+    ih2=rand()
+    # the following blocks check if smooth_seq and smooth_seq_avx
+    # return the same result 
+    slfrb=RBArray(slf)
+    rlfrb=RBArray(rlf)
+    rlcrb=RBArray(rlc)
+    restrict_residual!(rlc,slf,rlf,ih2)
+    restrict_residual!(rlcrb,slfrb,rlfrb,ih2)
+    res=norm(rlc-Array{Float64,2}(rlcrb))
+    @show res
+    # #The actual timings
+    tsimd=@belapsed restrict_residual!($rlc,$slf,$rlf,$ih2)
+    trb=@belapsed restrict_residual!($rlcrb,$slfrb,$rlfrb,$ih2)
+    @show "restrict",nf,res,tsimd,trb,tsimd/trb
+    nothing
+end
+
+
+# for n in [32,1024]
+#     benchmark_smooth_gs_rb(n)
+# end
+
+# for n in [32,1024]
+#     benchmark_interpolate_rb(n)
+# end
+
+for n in [128]
+    benchmark_restrict_rb(n)
+end
+
 
 
 
