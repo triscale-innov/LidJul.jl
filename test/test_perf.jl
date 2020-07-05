@@ -200,8 +200,9 @@ function interpolate_correct!(uf::RBArray,uc::RBArray)
     ncm1s2=ncm1>>>1
     nrm1s2=nrm1>>>1
 
-    @inbounds @fastmath for j2=1:ncm1s2
-         for i2=1:nrm1s2
+    @inbounds @fastmath @simd for j2=1:ncm1s2
+    # @avx @fastmath for j2=1:ncm1s2
+            for i2=1:nrm1s2
             # @inbounds @simd for j2=1:ncm1>>>1
             #     @fastmath @simd for i2=1:nrm1>>>1
             v1,v2,v3,v4=dc[i2,1,2j2],dc[i2+1,2,2j2],dc[i2,2,2j2+1],dc[i2+1,1,2j2+1]
@@ -285,6 +286,53 @@ function interpolate_correct!(uf::RBArray,uc::RBArray)
 
 end
 
+
+function interpolate_correct!(uf::RBArray,uc::RBArray)
+    (nrows,ncols)=size(uc)
+    # @show size(uc)
+    ncm1=ncols-1
+    nrm1=nrows-1
+
+    df,dc=uf.data,uc.data
+
+    ncm1s2=ncm1>>>1
+    nrm1s2=nrm1>>>1
+
+    @inbounds @fastmath for jcoarse2=1:ncm1s2
+        for djcoarse=0:1
+            jcoarse=2jcoarse2+djcoarse
+
+            @simd for icoarse2=1:ncm1s2
+
+
+                
+                for dicoarse=0:1
+                    icoarse=2icoarse2+dicoarse
+                    v=dc[(icoarse+1)>>>1,1+isodd(jcoarse+icoarse),jcoarse]
+
+                    # ifine=2icoarse-2
+                    jfine=2jcoarse-2
+
+
+
+                    # uf[ifine  ,jfine  ]+=v
+                    # uf[ifine+1,jfine  ]+=v
+                    # uf[ifine  ,jfine+1]+=v
+                    # uf[ifine+1,jfine+1]+=v
+
+                    df[icoarse-1,1,jfine]+=v
+                    df[icoarse  ,2,jfine]+=v
+                    df[icoarse-1,2,jfine+1]+=v
+                    df[icoarse  ,1,jfine+1]+=v
+                end
+            end
+        end
+    end
+end
+
+
+
+
 #function that call the benchmarks
 function benchmark_interpolate_rb(nf)
     @assert iseven(nf)
@@ -335,42 +383,192 @@ function restrict_residual!(rlc,slf,rlf,ih2)
     end
 end
 
-@inline fres_ee(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,1,fj]+ih2*(y[i  ,2,fj]+y[i,2,fj+1]+y[i,2,fj-1]+y[i+1,2,fj]-4.0*y[i,1,fj])
-@inline fres_oe(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,2,fj]+ih2*(y[i  ,1,fj]+y[i,1,fj+1]+y[i,1,fj-1]+y[i-1,1,fj]-4.0*y[i,2,fj])
-@inline fres_eo(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,2,fj]+ih2*(y[i+1,1,fj]+y[i,1,fj+1]+y[i,1,fj-1]+y[i  ,1,fj]-4.0*y[i,2,fj])
-@inline fres_oo(x,y,i,fj,ih2,nx,ny) = @inbounds x[i,1,fj]+ih2*(y[i  ,2,fj]+y[i,2,fj+1]+y[i,2,fj-1]+y[i-1,2,fj]-4.0*y[i,1,fj])
-
-#rlc = rl coarse
-function restrict_residual!(rlc::RBArray,slf::RBArray,rlf::RBArray,ih2)
+# #rlc = rl coarse
+# function restrict_residual!(rlc::RBArray,slf::RBArray,rlf::RBArray,ih2)
    
-    (nrows,ncols) = size(rlc)
-    (nx,ny) = (nrows-1,ncols-1)
-    fill!(rlc,0.)
+#     (nrows,ncols) = size(rlc)
+#     (nx,ny) = (nrows-1,ncols-1)
+#     fill!(rlc,0.)
 
-    @inline finer(i,j)=fres(rlf,slf,i,j,ih2,nx,ny)
-    oneOverFour=eltype(rlc)(1/4)
-    four=eltype(rlc)(4)
-    x,y=rlf.data,slf.data
+#     @inline finer(i,j)=fres(rlf,slf,i,j,ih2,nx,ny)
+#     oneOverFour=eltype(rlc)(1/4)
+#     four=eltype(rlc)(4)
+#     x,y=rlf.data,slf.data
+
+#     nrm1s2 = (nrows>>>1)-1
+#     ncm1s2 = (ncols>>>1)-1
 
 
-    @simd for j=2:ncols-1
-        fj=2j-2
-        for i=2:nrows-1
-            fi=2i-2
-            @inbounds rlc[i,j]=oneOverFour*(
-                fres_ee(x,y,i-1,fj,ih2,nx,ny)+
-                fres_oe(x,y,i,fj,ih2,nx,ny)+
-                fres_eo(x,y,i-1,fj+1,ih2,nx,ny)+
-                fres_oo(x,y,i,fj+1,ih2,nx,ny)
-                # fres_e(x,y,i,fj+1,ih2,nx,ny)
-                # rlf[fi,fj]+ih2*(slf[fi+1,fj]+slf[fi,fj+1]+slf[fi,fj-1]+slf[fi-1,fj]-four*slf[fi,fj])+
-                # rlf[fi+1,fj]+ih2*(slf[fi+2,fj]+slf[fi+1,fj+1]+slf[fi+1,fj-1]+slf[fi  ,fj]-four*slf[fi+1,fj])+
-                # rlf[fi,fj+1]+ih2*(slf[fi+1,fj+1]+slf[fi,fj+2]+slf[fi,fj  ]+slf[fi-1,fj+1]-four*slf[fi,fj+1])+
-                # rlf[fi+1,fj+1]+ih2*(slf[fi+2,fj+1]+slf[fi+1,fj+2]+slf[fi+1,fj  ]+slf[fi  ,fj+1]-four*slf[fi+1,fj+1])
-            )
-        end
-    end
-end
+  
+#     @inbounds for j2=1:ncm1s2
+#         # j=2j2
+#         # fj=2j-2
+#         @fastmath @simd for i2=1:nrm1s2
+#             rlc.data[i2  ,1,2j2] =
+#             0.25*( 
+#                 x[2i2-1,1,4j2-2  ]+2ih2*(y[2i2-1,2,4j2-2  ]+y[2i2-1,2,4j2-2+1]+y[2i2-1,2,4j2-2-1]+y[2i2  ,2,4j2-2  ]-4.0*y[2i2-1,1,4j2-2  ])+
+#                 x[2i2+0,2,4j2-2  ]+2ih2*(y[2i2+0,1,4j2-2  ]+y[2i2  ,1,4j2-2+1]+y[2i2  ,1,4j2-2-1]+y[2i2-1,1,4j2-2  ]-4.0*y[2i2  ,2,4j2-2  ])+
+#                 x[2i2-1,2,4j2-2+1]+2ih2*(y[2i2+0,1,4j2-2+1]+y[2i2  ,1,4j2-2+1]+y[2i2-1,1,4j2-2+2]+y[2i2-1,1,4j2-2+1]-4.0*y[2i2-1,2,4j2-2+1])+
+#                 x[2i2+0,1,4j2-2+1]+2ih2*(y[2i2+0,2,4j2-2+1]+y[2i2  ,2,4j2-2+2]+y[2i2  ,2,4j2-2  ]+y[2i2-1,2,4j2-2+1]-4.0*y[2i2,1  ,4j2-2+1]))
+
+#             # rlc.data[i2  ,1,j] = restrict_cell(x,y,2i2,2j-2,ih2)
+#             # rlc.data[i2+1,2,j] = restrict_cell(x,y,2i2+1,2j-2,ih2)
+#         end
+#         # j=2j2+1
+#         # fj=2j-2
+#         # @fastmath  @simd for i2=1:nrm1s2
+#         #     i=2i2
+#         #     fi=2i-2
+#         #     rlc.data[i2,2,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#         #     i=2i2+1
+#         #     fi=2i-2
+#         #     rlc.data[i2+1,1,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#         #     # @inbounds rlc[i,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#         # end
+
+
+
+@inline fres_ee(x,y,i,fj,ih2) = x[i,1,fj]+ih2*(y[i  ,2,fj]+y[i,2,fj+1]+y[i,2,fj-1]+y[i+1,2,fj]-4.0*y[i,1,fj])
+@inline fres_oe(x,y,i,fj,ih2) = x[i,2,fj]+ih2*(y[i  ,1,fj]+y[i,1,fj+1]+y[i,1,fj-1]+y[i-1,1,fj]-4.0*y[i,2,fj])
+@inline fres_eo(x,y,i,fj,ih2) = x[i,2,fj]+ih2*(y[i+1,1,fj]+y[i,1,fj+1]+y[i,1,fj-1]+y[i  ,1,fj]-4.0*y[i,2,fj])
+@inline fres_oo(x,y,i,fj,ih2) = x[i,1,fj]+ih2*(y[i  ,2,fj]+y[i,2,fj+1]+y[i,2,fj-1]+y[i-1,2,fj]-4.0*y[i,1,fj])
+
+# #rlc = rl coarse
+# function restrict_residual!(rlc::RBArray,slf::RBArray,rlf::RBArray,ih2)
+   
+#     (nrows,ncols) = size(rlc)
+#     (nx,ny) = (nrows-1,ncols-1)
+#     fill!(rlc,0.)
+
+#     @inline finer(i,j)=fres(rlf,slf,i,j,ih2,nx,ny)
+#     oneOverFour=eltype(rlc)(1/4)
+#     four=eltype(rlc)(4)
+#     x,y=rlf.data,slf.data
+
+
+#     @simd for j=2:ncols-1
+#         fj=2j-2
+#         for i=2:nrows-1
+#             fi=2i-2
+#             @inbounds rlc[i,j]=oneOverFour*(
+#                 fres_ee(x,y,i-1,fj,ih2,nx,ny)+
+#                 fres_oe(x,y,i,fj,ih2,nx,ny)+
+#                 fres_eo(x,y,i-1,fj+1,ih2,nx,ny)+
+#                 fres_oo(x,y,i,fj+1,ih2,nx,ny)
+#                 # fres_e(x,y,i,fj+1,ih2,nx,ny)
+#                 # rlf[fi,fj]+ih2*(slf[fi+1,fj]+slf[fi,fj+1]+slf[fi,fj-1]+slf[fi-1,fj]-four*slf[fi,fj])+
+#                 # rlf[fi+1,fj]+ih2*(slf[fi+2,fj]+slf[fi+1,fj+1]+slf[fi+1,fj-1]+slf[fi  ,fj]-four*slf[fi+1,fj])+
+#                 # rlf[fi,fj+1]+ih2*(slf[fi+1,fj+1]+slf[fi,fj+2]+slf[fi,fj  ]+slf[fi-1,fj+1]-four*slf[fi,fj+1])+
+#                 # rlf[fi+1,fj+1]+ih2*(slf[fi+2,fj+1]+slf[fi+1,fj+2]+slf[fi+1,fj  ]+slf[fi  ,fj+1]-four*slf[fi+1,fj+1])
+#             )
+#         end
+#     end
+# end
+
+# @inline function restrict_cell_ifj(x,y,i,fj,ih2)
+#     0.25*( 
+#         x[i-1,1,fj  ]+ih2*(y[i-1,2,fj  ]+y[i-1,2,fj+1]+y[i-1,2,fj-1]+y[i  ,2,fj  ]-4.0*y[i-1,1,fj  ])+
+#         x[i  ,2,fj  ]+ih2*(y[i  ,1,fj  ]+y[i  ,1,fj+1]+y[i  ,1,fj-1]+y[i-1,1,fj  ]-4.0*y[i  ,2,fj  ])+
+#         x[i-1,2,fj+1]+ih2*(y[i  ,1,fj+1]+y[i  ,1,fj+1]+y[i-1,1,fj+2]+y[i-1,1,fj+1]-4.0*y[i-1,2,fj+1])+
+#         x[i  ,1,fj+1]+ih2*(y[i  ,2,fj+1]+y[i  ,2,fj+2]+y[i  ,2,fj  ]+y[i-1,2,fj+1]-4.0*y[i,1  ,fj+1]))
+#     # fres_ee(x,y,i-1,fj,ih2)+
+#     # fres_oe(x,y,i,fj,ih2)+
+#     # fres_eo(x,y,i-1,fj+1,ih2)+
+#     # fres_oo(x,y,i,fj+1,ih2))
+# end
+
+# @inline function restrict_cell(x,y,i,fj,ih2)
+#     0.25*(
+#     fres_ee(x,y,i-1,fj,ih2)+
+#     fres_oe(x,y,i,fj,ih2)+
+#     fres_eo(x,y,i-1,fj+1,ih2)+
+#     fres_oo(x,y,i,fj+1,ih2))
+# end
+
+# #rlc = rl coarse
+# function restrict_residual!(rlc::RBArray,slf::RBArray,rlf::RBArray,ih2)
+   
+#     (nrows,ncols) = size(rlc)
+#     (nx,ny) = (nrows-1,ncols-1)
+#     fill!(rlc,0.)
+
+#     @inline finer(i,j)=fres(rlf,slf,i,j,ih2,nx,ny)
+#     oneOverFour=eltype(rlc)(1/4)
+#     four=eltype(rlc)(4)
+#     x,y=rlf.data,slf.data
+
+#     nrm1s2 = (nrows>>>1)-1
+#     ncm1s2 = (ncols>>>1)-1
+
+
+  
+#     @inbounds for j2=1:ncm1s2
+#         # j=2j2
+#         # fj=2j-2
+#         @fastmath @simd for i2=1:nrm1s2
+#             rlc.data[i2  ,1,2j2] =
+#             0.25*( 
+#                 x[2i2-1,1,4j2-2  ]+2ih2*(y[2i2-1,2,4j2-2  ]+y[2i2-1,2,4j2-2+1]+y[2i2-1,2,4j2-2-1]+y[2i2  ,2,4j2-2  ]-4.0*y[2i2-1,1,4j2-2  ])+
+#                 x[2i2  ,2,4j2-2  ]+2ih2*(y[2i2  ,1,4j2-2  ]+y[2i2  ,1,4j2-2+1]+y[2i2  ,1,4j2-2-1]+y[2i2-1,1,4j2-2  ]-4.0*y[2i2  ,2,4j2-2  ])+
+#                 x[2i2-1,2,4j2-2+1]+2ih2*(y[2i2  ,1,4j2-2+1]+y[2i2  ,1,4j2-2+1]+y[2i2-1,1,4j2-2+2]+y[2i2-1,1,4j2-2+1]-4.0*y[2i2-1,2,4j2-2+1])+
+#                 x[2i2  ,1,4j2-2+1]+2ih2*(y[2i2  ,2,4j2-2+1]+y[2i2  ,2,4j2-2+2]+y[2i2  ,2,4j2-2  ]+y[2i2-1,2,4j2-2+1]-4.0*y[2i2,1  ,4j2-2+1]))
+
+#             # rlc.data[i2  ,1,j] = restrict_cell(x,y,2i2,2j-2,ih2)
+#             # rlc.data[i2+1,2,j] = restrict_cell(x,y,2i2+1,2j-2,ih2)
+#         end
+#         # j=2j2+1
+#         # fj=2j-2
+#         # @fastmath  @simd for i2=1:nrm1s2
+#         #     i=2i2
+#         #     fi=2i-2
+#         #     rlc.data[i2,2,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#         #     i=2i2+1
+#         #     fi=2i-2
+#         #     rlc.data[i2+1,1,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#         #     # @inbounds rlc[i,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#         # end
+
+    
+        
+
+#     end
+
+#     # @simd for j=2:ncols-1
+#     #     fj=2j-2
+
+#     #     for i2=1:nrm1s2
+#     #         i=2i2
+#     #         fi=2i-2
+#     #         @inbounds rlc[i,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#     #         i=2i2+1
+#     #         fi=2i-2
+#     #         @inbounds rlc[i,j]=restrict_cell_ifj(x,y,i,fj,ih2)
+#     #     end
+
+    
+        
+
+#     # end
+
+#     # @simd for j2=1:ncm1s2
+#     #     fj=j2-2
+#     #     for i2=1:nrm1s2
+#     #         fi=i2-2
+#     #         @inbounds rlc[i2,j2]=restrict_cell_ifj(x,y,i2,fj,ih2)
+#     #         fi=i2-1
+#     #         @inbounds rlc[i2+1,j2]=restrict_cell_ifj(x,y,i2+1,fj,ih2)
+     
+#     #     end
+#     #     fj=j2-1
+#     #     for i2=1:nrm1s2
+#     #         fi=i2-2
+#     #         @inbounds rlc[i2,j2+1]=restrict_cell_ifj(x,y,i2,fj,ih2)
+#     #         fi=i2-1
+#     #         @inbounds rlc[i2+1,j2+1]=restrict_cell_ifj(x,y,i2+1,fj,ih2)
+     
+#     #     end
+#     # end
+# end
 
 #function that call the benchmarks
 function benchmark_restrict_rb(nf)
@@ -404,13 +602,13 @@ end
 #     benchmark_smooth_gs_rb(n)
 # end
 
-# for n in [32,1024]
-#     benchmark_interpolate_rb(n)
-# end
-
-for n in [128]
-    benchmark_restrict_rb(n)
+for n in [32,1024]
+    benchmark_interpolate_rb(n)
 end
+
+# for n in [32,128]
+#     benchmark_restrict_rb(n)
+# end
 
 
 
