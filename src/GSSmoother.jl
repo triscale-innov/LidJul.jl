@@ -22,13 +22,11 @@ using LoopVectorization
 
 @inline function smooth_line(nrm1,j,i1,sl,rl,ih2,denom)
     if nrm1 >= 0
-        # @show (nrm1 >= 0)
-    # @fastmath @inbounds @simd for i=i1:2:nrm1
-        @avx for i=i1:2:nrm1
+    @fastmath @simd for i=i1:2:nrm1
             sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
         end
     else
-        @show nrm1
+        # @show nrm1
         @fastmath @inbounds @simd for i=i1:2:nrm1
             sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
         end
@@ -44,6 +42,12 @@ end
         smooth_line(nrm1,j,2,sl,rl,ih2,denom)
         smooth_line(nrm1,j+1,3,sl,rl,ih2,denom)
     end
+
+
+    # @inbounds for j=2:2:ncols-1
+    #     smooth_line(nrm1,j,2,sl,rl,ih2,denom)
+    #     smooth_line(nrm1,j+1,3,sl,rl,ih2,denom)
+    # end
     @inbounds for j=2:2:ncols-1
         smooth_line(nrm1,j,3,sl,rl,ih2,denom)
         smooth_line(nrm1,j+1,2,sl,rl,ih2,denom)
@@ -56,8 +60,8 @@ end
     denom=1/(4ih2)
     nrm1=nrows-1
     ncm1=ncols-1
-    for j=2:ncm1
-        @avx for i=2:nrm1
+    @avx for j=2:ncm1
+         for i=2:nrm1
             sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1])) 
         end
     end
