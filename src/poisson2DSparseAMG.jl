@@ -18,7 +18,7 @@ function solve!(Xxy,Bxy,sp::PoissonSparseAMG)
     p = aspreconditioner(ml)
     b=view(Bxy,1:length(Bxy))
     x=view(Xxy,1:length(Xxy))
-    a,cgamglog=IterativeSolvers.cg!(x,sp.spLxy,b,Pl = p;log=true,tol = 1e-10,maxiter=1000)
+    a,cgamglog=IterativeSolvers.cg!(x,sp.spLxy,b,Pl = p;log=true,reltol = 1e-16,maxiter=1000)
     @show cgamglog
     cgamglog
 end

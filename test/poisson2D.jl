@@ -2,7 +2,7 @@ using LidJul
 using LinearAlgebra
 using SparseArrays
 using BenchmarkTools
-using Makie
+using GLMakie
 using IterativeSolvers
 using Preconditioners
 using Random
@@ -54,8 +54,8 @@ function test_pcg(msm,preco,A,splu,Bxy)
     init_time=@elapsed pc=precoconstructor(A,preco)
     Random.seed!(1234)
     prand=rand(length(p))
-    p,iterations = begin copyto!(p,prand) ; IterativeSolvers.cg!(p,A, b, Pl=pc;log=true,tol = 1e-10,maxiter=2000) end
-    solve_time = @elapsed begin copyto!(p,prand) ; IterativeSolvers.cg!(p,A, b, Pl=pc;log=true,tol = 1e-10,maxiter=2000) end
+    p,iterations = begin copyto!(p,prand) ; IterativeSolvers.cg!(p,A, b, Pl=pc;log=true,reltol = 1e-16,maxiter=2000) end
+    solve_time = @elapsed begin copyto!(p,prand) ; IterativeSolvers.cg!(p,A, b, Pl=pc;log=true,reltol = 1e-16,maxiter=2000) end
     spreco=string(preco)[1:min(15,length(string(preco)))]
     sname="PCG"*spreco
     addmeasurements(msm,sname,init_time,solve_time,resnorm(splu,p,b),iterations)
@@ -181,13 +181,41 @@ function go()
 
     p./=pmax
 
-    s=Makie.surface(x,y,p)
-    xm, ym, zm = minimum(scene_limits(s))
-    Makie.contour!(s,x,y,p, levels = 15, linewidth = 2, transformation = (:xy, zm))
-    Makie.wireframe!(s,x,y,p, overdraw = true, transparency = true, color = (:black, 0.1))
-    display(AbstractPlotting.PlotDisplay(), s)
-    resize!(s,(1600,800))
-    Makie.save("makie"*string(n)*tostring(bc)*".png", s)
+    z = p # to match https://lazarusa.github.io/BeautifulMakie/surfWireLines/surfWireContour/ notation
+
+    zmin, zmax = minimum(z), maximum(z)
+    cmap = :viridis
+    set_theme!(theme_dark())
+    fig = Figure(resolution = (1200, 800), fontsize = 22)
+    ax = Axis3(fig[1, 1], aspect = :data,
+        xzpanelcolor = (:black, 0.75), yzpanelcolor = (:black, 0.75),
+        zgridcolor = :grey, ygridcolor = :grey, xgridcolor = :grey)
+        # ax = Axis3(fig[1, 1], aspect = :data, perspectiveness = 0.5, elevation = π / 9,
+        # xzpanelcolor = (:black, 0.75), yzpanelcolor = (:black, 0.75),
+        # zgridcolor = :grey, ygridcolor = :grey, xgridcolor = :grey)
+
+    sm = surface!(ax, x, y, z; colormap = cmap, colorrange = (zmin, zmax),
+        transparency = false)
+    xm, ym, zm = minimum(ax.finallimits[])
+    contour!(ax, x, y, z; levels = 20, colormap = cmap, linewidth = 2,
+        colorrange = (zmin, zmax), transformation = (:xy, zm),
+        transparency = true)
+    wireframe!(ax, x, y, z; overdraw = true, transparency = true,
+        color = (:black, 0.1))
+    Colorbar(fig[1, 2], sm, height = Relative(0.5))
+    colsize!(fig.layout, 1, Aspect(1, 1.0))
+    # display(fig)
+    set_theme!()
+
+
+    # s=Makie.surface(x,y,p)
+    # # xm, ym, zm = minimum(scene_limits(s))
+    # # Makie.contour!(s,x,y,p, levels = 15, linewidth = 2, transformation = (:xy, zm))
+    # Makie.contour!(s,x,y,p, levels = 15, linewidth = 2)
+    # Makie.wireframe!(s,x,y,p, overdraw = true, transparency = true, color = (:black, 0.1))
+    # display(AbstractPlotting.PlotDisplay(), s)
+    # resize!(s,(1600,800))
+    Makie.save("makie"*string(n)*tostring(bc)*".png",fig)
     nothing
 end
 

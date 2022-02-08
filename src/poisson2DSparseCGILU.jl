@@ -17,7 +17,7 @@ function solve!(Xxy,Bxy,sp::PoissonSparseCGILU)
     p = sp.iluLxy
     b=view(Bxy,1:length(Bxy))
     x=view(Xxy,1:length(Xxy))
-    a,cgilulog=IterativeSolvers.cg!(x,sp.spLxy,b,Pl = p;log=true,tol = 1e-10,maxiter=1000)
+    a,cgilulog=IterativeSolvers.cg!(x,sp.spLxy,b,Pl = p;log=true,reltol = 1e-16,maxiter=1000)
     @show cgilulog
     cgilulog
 end
