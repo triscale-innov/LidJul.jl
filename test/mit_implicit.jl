@@ -1,15 +1,12 @@
 using SparseArrays
 using LinearAlgebra
-using Makie
+using GLMakie,Makie
 using LidJul
 using DataStructures #for DefaultDict
 using PrettyTables
 using StaticArrays
 using Interpolations
 using SIMD
-
-
-
 
 #MIT18086_NAVIERSTOKES
 #    Solves the incompressible Navier-Stokes equations in a
@@ -268,38 +265,42 @@ function make_velocity(uv)
       xi=1+x*(nx-1)
       yi=1+y*(ny-1)
 
-      Point2f0(f_vx(xi,yi),f_vy(xi,yi))
+      Makie.Point2f0(f_vx(xi,yi),f_vy(xi,yi))
    end
    return velocity
 end
 
 
 function plotflow_makie(nx,ny,hx,hy,x,y,U,V,Ue,Ve,P,Q,Tlq)
-   scene=Scene(resolution=(300,300),scale=false)
-   limits = FRect(0.2,0.2, 0.72, 0.72)
+   fig = Figure(size=(600, 600))
+   # fig=Figure(resolution=(600,600),scale=false)
 
+   # ax = Axis(fig[1, 1], showticks = false, showaxis = false)
+   ax = Axis(fig[1, 1])
+   limits!(ax, BBox(0.,1.0, 0., 1.0))
 
    sp=2
    stp=1
    endp=2
 
-   qn=Node(rand(nx+1,ny+1))
+   qn=Observable(rand(nx+1,ny+1))
 
-   uvn=Node([rand(size(Ue)...),rand(size(Ve)...)])
-   un=Node(rand(size(Ue)...))
-   vn=Node(rand(size(Ve)...))
+   uvn=Observable([rand(size(Ue)...),rand(size(Ve)...)])
+   un=Observable(rand(size(Ue)...))
+   vn=Observable(rand(size(Ve)...))
    # lift(a->println(size(a),norm(a)),qn)
    as=2
 
 
    nlevels=10
-   contour!(scene,x,y,lift(a->a,qn),linewidth=1,levels=200,fillrange=false,limits=limits,colormap = :plasma, axis = (showticks = false, showaxis = false,), alpha=0.95)
-   streamplot!(scene,lift(a->make_velocity(to_value(a)),uvn),x,y, colormap = :magma, arrow_size=0.02, gridsize=(20,20))
 
-   axis = scene[Axis]
-   axis[:names][:axisnames] = (" ", " ")
+   contour!(ax,x,y,lift(a->a,qn),linewidth=1,levels=200,fillrange=false,colormap = :plasma, alpha=0.95)
+   streamplot!(ax,lift(a->make_velocity(to_value(a)),uvn),x,y, colormap = :magma, arrow_size=0.02, gridsize=(20,20))
 
-   scene,qn,un,vn,uvn
+   # axis = scene[Axis]
+   # axis[:names][:axisnames] = (" ", " ")
+
+   fig,qn,un,vn,uvn
 end
 
 

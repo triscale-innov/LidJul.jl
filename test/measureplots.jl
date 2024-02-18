@@ -6,7 +6,7 @@ using IterativeSolvers
 # export residuals,niterations
 # using Formatting
 # using Printf
-Plots.pyplot()
+# Plots.pyplot()
 
 residuals(hist) = hist.data[:resnorm]
 residuals(x::Nothing) = nothing
@@ -17,7 +17,8 @@ niterations(x) = length(residuals(x))==0 ? nothing : length(residuals(x))
 
 function plotbar(table,fn)
     plt=Plots.bar(Vector{String}(table[:,1]),Vector{Float64}(table[:,4]),title="Poisson Solver Duration (s)",
-        xrotation=90,label="",size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12))
+    xrotation=90,label="",size=(600,400))
+    # xrotation=90,label="",size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12))
     Plots.display(plt)
     Plots.savefig(plt,fn)
 end
@@ -42,7 +43,8 @@ function plotallconvergence(itable,fn)
         else
             plt=Plots.plot!(plt,resi,yaxis=:log,label=itable[i,1],
                 legend=:outertopright,  linewidth = 3,linestyle=ls,
-                size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12),legendfont=Plots.font(11))
+                size=(600,400))
+                # size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12),legendfont=Plots.font(11))
         end
     end
     Plots.display(plt)
@@ -69,8 +71,8 @@ function plotfast(itable,fn)
             else
                 plt2=Plots.plot!(plt2,resi,yaxis=:log,label=itable[i,1],
                     linewidth = 3,linestyle=ls,
-                    size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12),legendfont=Plots.font(11),
-                    marker=markers[i],markersize=6)
+                    size=(600,400),marker=markers[i],markersize=6)
+                    # size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12),legendfont=Plots.font(11),marker=markers[i],markersize=6)
             end
         end
     end
@@ -95,15 +97,13 @@ function plotconvergence(itable,fn)
             plt2=Plots.plot(resi,yaxis=:log,label=itable[i,1],
                 linewidth = 3,linestyle=ls,
                 ylabel="Residual norm",xlabel="Iteration #",
-                size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12),legendfont=Plots.font(11),
-                marker=markers[i],markersize=6)
+                size=(600,400),marker=markers[i],markersize=6)
         else
             # @show itable[i,1],itable[i,6]
             plt2=Plots.plot!(plt2,resi,yaxis=:log,label=itable[i,1],
                 linewidth = 3,linestyle=ls,
                 ylabel="Residual norm",xlabel="Iteration #",
-                size=(600,400),tickfont=Plots.font(12),guidefont=Plots.font(12),legendfont=Plots.font(11),
-                marker=markers[i],markersize=6)
+                size=(600,400),marker=markers[i],markersize=6)
         end
     end
     display(plt2)
@@ -141,41 +141,42 @@ function measureplot(msm,sname)
     # iterations=iterations[sp,:]
     nr,nc=size(table)
     println("all methods")
-    pretty_table(table[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
-    println("converged methods")
-    ctable=table[filter(i->(!isnan(table[i,5]) && table[i,5]<1.e-6),1:size(table,1)),:]
-    pretty_table(ctable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
 
-    println("non converged methods")
-    nctable=table[filter(i->(isnan(table[i,5]) ||  table[i,5]>1.e-6),1:size(table,1)),:]
-    pretty_table(nctable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
-    println("converged iterative methods")
-    ictable=ctable[filter(i->ctable[i,6]!==nothing,1:size(ctable,1)),:]
-    pretty_table(ictable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
-    println("efficient converged iterative methods")
-    iectable=ictable[filter(i->ictable[i,4]<10.0,1:size(ictable,1)),:]
-    pretty_table(ictable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
-    println("iterative methods")
-    itable=table[filter(i->table[i,6]!==nothing,1:size(table,1)),:]
-    pretty_table(itable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
-    println("fast methods")
-    ftable=ictable[filter(i->(ictable[i,6]<25 && ictable[i,4]<10.0),1:size(ictable,1)),:]
-    pretty_table(ftable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    pretty_table(table[:,1:6],header=collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # println("converged methods")
+    # ctable=table[filter(i->(!isnan(table[i,5]) && table[i,5]<1.e-6),1:size(table,1)),:]
+    # pretty_table(ctable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+
+    # println("non converged methods")
+    # nctable=table[filter(i->(isnan(table[i,5]) ||  table[i,5]>1.e-6),1:size(table,1)),:]
+    # pretty_table(nctable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # println("converged iterative methods")
+    # ictable=ctable[filter(i->ctable[i,6]!==nothing,1:size(ctable,1)),:]
+    # pretty_table(ictable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # println("efficient converged iterative methods")
+    # iectable=ictable[filter(i->ictable[i,4]<10.0,1:size(ictable,1)),:]
+    # pretty_table(ictable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # println("iterative methods")
+    # itable=table[filter(i->table[i,6]!==nothing,1:size(table,1)),:]
+    # pretty_table(itable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # println("fast methods")
+    # ftable=ictable[filter(i->(ictable[i,6]<25 && ictable[i,4]<10.0),1:size(ictable,1)),:]
+    # pretty_table(ftable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
 
 
-    sp=sortperm(itable[:, 6]+0.0001*itable[:,5])
-    itable=itable[reverse(sp),:]
-    pretty_table(itable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # sp=sortperm(itable[:, 6]+0.0001*itable[:,5])
+    # itable=itable[reverse(sp),:]
+    # pretty_table(itable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
 
-    cftable=table[filter(i->(!isnan(table[i,5]) && table[i,5]<1.e-6 && table[i,4]<10.0),1:size(table,1)),:]
+    # cftable=table[filter(i->(!isnan(table[i,5]) && table[i,5]<1.e-6 && table[i,4]<10.0),1:size(table,1)),:]
     
-    plotbar(cftable,"time_converge_"*sname*"_all.svg")
-    plotbar(iectable,"time_converge_"*sname*"_mixed.svg")
-    plotbar(ftable,"time_converge_"*sname*"_fast.svg")
+    # plotbar(cftable,"time_converge_"*sname*"_all.svg")
+    # plotbar(iectable,"time_converge_"*sname*"_mixed.svg")
+    # plotbar(ftable,"time_converge_"*sname*"_fast.svg")
 
-    plotallconvergence(itable,"allconvergence_"*sname*".svg")
-    plotfast(itable,"fastconvergence_"*sname*".svg")
-    plotconvergence(ftable,"convergence_"*sname*".svg")
+    # plotallconvergence(itable,"allconvergence_"*sname*".svg")
+    # plotfast(itable,"fastconvergence_"*sname*".svg")
+    # plotconvergence(ftable,"convergence_"*sname*".svg")
 
     table,header
 end

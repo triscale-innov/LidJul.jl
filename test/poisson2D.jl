@@ -181,42 +181,36 @@ function go()
 
     p./=pmax
 
-    z = p # to match https://lazarusa.github.io/BeautifulMakie/surfWireLines/surfWireContour/ notation
+    z = p # to match https://beautiful.makie.org/examples/3d/surfaces/surface notation
 
+    GLMakie.activate!(; float=true)
     zmin, zmax = minimum(z), maximum(z)
     cmap = :viridis
-    set_theme!(theme_dark())
-    fig = Figure(resolution = (1200, 800), fontsize = 22)
-    ax = Axis3(fig[1, 1], aspect = :data,
+    
+    fig = Figure(size = (1200, 800), fontsize = 22)
+    ax = Axis3(fig[1, 1], aspect = :data, perspectiveness = 0.5, elevation = π / 9,
         xzpanelcolor = (:black, 0.75), yzpanelcolor = (:black, 0.75),
         zgridcolor = :grey, ygridcolor = :grey, xgridcolor = :grey)
-        # ax = Axis3(fig[1, 1], aspect = :data, perspectiveness = 0.5, elevation = π / 9,
-        # xzpanelcolor = (:black, 0.75), yzpanelcolor = (:black, 0.75),
-        # zgridcolor = :grey, ygridcolor = :grey, xgridcolor = :grey)
-
     sm = surface!(ax, x, y, z; colormap = cmap, colorrange = (zmin, zmax),
-        transparency = false)
+        transparency = true)
     xm, ym, zm = minimum(ax.finallimits[])
     contour!(ax, x, y, z; levels = 20, colormap = cmap, linewidth = 2,
-        colorrange = (zmin, zmax), transformation = (:xy, zm),
+        colorrange = (zmin, zmax), transformation = (:xy, zmin),
         transparency = true)
     wireframe!(ax, x, y, z; overdraw = true, transparency = true,
         color = (:black, 0.1))
     Colorbar(fig[1, 2], sm, height = Relative(0.5))
     colsize!(fig.layout, 1, Aspect(1, 1.0))
-    # display(fig)
-    set_theme!()
+     display(fig)
+    fig
 
 
-    # s=Makie.surface(x,y,p)
-    # # xm, ym, zm = minimum(scene_limits(s))
-    # # Makie.contour!(s,x,y,p, levels = 15, linewidth = 2, transformation = (:xy, zm))
-    # Makie.contour!(s,x,y,p, levels = 15, linewidth = 2)
-    # Makie.wireframe!(s,x,y,p, overdraw = true, transparency = true, color = (:black, 0.1))
-    # display(AbstractPlotting.PlotDisplay(), s)
-    # resize!(s,(1600,800))
     Makie.save("makie"*string(n)*tostring(bc)*".png",fig)
     nothing
 end
+
+
+
+
 
 go()
