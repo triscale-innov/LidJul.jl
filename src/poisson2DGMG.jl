@@ -243,22 +243,22 @@ end
 function interpolate_correct(lev,g::PoissonGMG)
     uf=g.Sol[lev-1]
     uc=g.Sol[lev]
-    (nrows,ncols)=size(uc)
-    ncm1=ncols-1
-    nrm1=nrows-1
+    (nrows_c,ncols_c)=size(uc)
 
-    @inbounds for j=2:ncm1
-        fj=2j-1
-        @fastmath for i=2:nrm1
-            fi=2i-1
-             v=uc[i,j] * 0.25
-             uf[fi  ,fj  ]+=v
-             uf[fi-1,fj  ]+=v
-             uf[fi  ,fj-1]+=v
-             uf[fi-1,fj-1]+=v
+    # We iterate over the interior of the coarse grid
+    @inbounds for j=2:ncols_c-2
+        for i=2:nrows_c-2
+            # Fine grid indices
+            fi = 2i - 2
+            fj = 2j - 2
+
+            # Apply the interpolation formula
+            uf[fi,   fj]   += uc[i,j]
+            uf[fi+1, fj]   += (uc[i,j] + uc[i+1,j]) / 2.0
+            uf[fi,   fj+1] += (uc[i,j] + uc[i,j+1]) / 2.0
+            uf[fi+1, fj+1] += (uc[i,j] + uc[i+1,j] + uc[i,j+1] + uc[i+1,j+1]) / 4.0
         end
     end
-
 end
 
 

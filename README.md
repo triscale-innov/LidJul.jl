@@ -21,22 +21,25 @@ https://www10.cs.fau.de/publications/reports/TechRep_2008-03.pdf
 The `src/poisson2DGMG` and `src/GSSmoother.jl` files contain the Julia implementation of a solver for Poisson's equation defined on a 2D unit square with `n x n` steps and a basic FD scheme. Boundary conditions can be chosen to be of `Dirichlet` or `Neumann` type for the 4 edges of the square (left,right,bottom,top). One can launch the
 resolution of the Poisson's equation with a collection of solvers via the command (from this directory):
 
-
+First, ensure the project dependencies are instantiated:
 ```julia
 ] activate .
-include("test/poisson2D.jl")
+] instantiate
 ```
 
-By default the solver is launched for `n=128` and `DNDN` boundary conditions. These values can be modified in the `go()` function defined in `test/poisson2D.jl`. Note that `n` must be a power of two.
+Then, you can run the solver from the command line:
+```bash
+julia test/poisson2D.jl [--n <grid_size>] [--bc <boundary_conditions>]
+```
 
+For example:
+```bash
+julia test/poisson2D.jl --n 128 --bc DNDN
 ```
-function go()
-    n=128 #Choose a power of two
-    #Choose boundary conditions 
-    # bc=(neumann,neumann,neumann,neumann)
-    bc=(dirichlet,neumann,dirichlet,neumann)
-    ...
-```
+
+The script accepts the following command-line arguments:
+*   `--n`: The grid size. Must be a power of two. Defaults to `128`.
+*   `--bc`: A 4-character string representing the boundary conditions for the left, right, bottom, and top edges. Use 'D' for Dirichlet and 'N' for Neumann. Defaults to `"DNDN"`.
 
 ![](docs/figs/makie128DNDN.png)
 

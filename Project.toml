@@ -4,6 +4,7 @@ authors = ["{USERNAME} <laurent.plagne@gmail.com>"]
 
 [deps]
 AlgebraicMultigrid = "2169fc97-5a83-5252-b627-83903c6c433c"
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
@@ -23,6 +24,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 AlgebraicMultigrid = "0.5"
+ArgParse = "1.2.0"
 BenchmarkTools = "1"
 DataStructures = "0.19"
 GLMakie = "0.13"
