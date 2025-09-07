@@ -176,7 +176,7 @@ function treatboundary(lev,Sol,g)
         sl[i,1]=cbottom*sl[i,2]
         sl[i,ncols]=ctop*sl[i,ncols-1]
     end
-    allneumann = bc[1][1]==bc[1][2]==bc[2][1]==bc[2][2]==neumann
+    allneumann = bc[1][1]==neumann && bc[1][2]==neumann && bc[2][1]==neumann && bc[2][2]==neumann
 
 end
 
@@ -251,7 +251,7 @@ function interpolate_correct(lev,g::PoissonGMG)
         fj=2j-1
         @fastmath for i=2:nrm1
             fi=2i-1
-             v=uc[i,j]
+             v=uc[i,j] * 0.25
              uf[fi  ,fj  ]+=v
              uf[fi-1,fj  ]+=v
              uf[fi  ,fj-1]+=v

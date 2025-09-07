@@ -1,0 +1,218 @@
+  Activating project at `/app`
+Precompiling project...
+┌ Warning: attempting to remove probably stale pidfile
+│   path = "/home/jules/.julia/compiled/v1.11/LoopVectorization/4TogI_XXnJP.ji.pidfile"
+└ @ FileWatching.Pidfile ~/.julia/juliaup/julia-1.11.6+0.x64.linux.gnu/share/julia/stdlib/v1.11/FileWatching/src/pidfile.jl:249
+┌ Warning: attempting to remove probably stale pidfile
+│   path = "/home/jules/.julia/compiled/v1.11/Makie/iZ1Bl_XXnJP.ji.pidfile"
+└ @ FileWatching.Pidfile ~/.julia/juliaup/julia-1.11.6+0.x64.linux.gnu/share/julia/stdlib/v1.11/FileWatching/src/pidfile.jl:249
+┌ Warning: attempting to remove probably stale pidfile
+│   path = "/home/jules/.julia/compiled/v1.11/Plots/ld3vC_XXnJP.ji.pidfile"
+└ @ FileWatching.Pidfile ~/.julia/juliaup/julia-1.11.6+0.x64.linux.gnu/share/julia/stdlib/v1.11/FileWatching/src/pidfile.jl:249
+  58001.6 ms  ✓ LoopVectorization
+   1593.4 ms  ✓ LoopVectorization → SpecialFunctionsExt
+ 127659.7 ms  ✓ Plots
+   4931.7 ms  ✓ Plots → FileIOExt
+   5037.5 ms  ✓ Plots → UnitfulExt
+   5461.0 ms  ✓ Plots → GeometryBasicsExt
+ 344313.5 ms  ✓ Makie
+           ✗ GLMakie
+   2006.4 ms  ✓ LidJul
+  8 dependencies successfully precompiled in 364 seconds. 371 already precompiled.
+  1 dependency had output during precompilation:
+┌ LidJul
+│  WARNING: using AlgebraicMultigrid.solve! in module LidJul conflicts with an existing identifier.
+└
+
+The following 1 direct dependency failed to precompile:
+
+GLMakie
+
+Failed to precompile GLMakie [e9467ef8-e4e7-5192-8a1a-b1aee30e663a] to "/home/jules/.julia/compiled/v1.11/GLMakie/jl_BDraM5".
+┌ Warning:     OpenGL/GLFW wasn't loaded correctly or couldn't be initialized.
+│     This likely means, you're on a headless server without having OpenGL support setup correctly.
+│     Have a look at the troubleshooting section in the readme:
+│     https://github.com/MakieOrg/Makie.jl/tree/master/GLMakie#troubleshooting-opengl.
+└ @ GLMakie ~/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:4
+ERROR: LoadError: InitError: Exception[GLFW.GLFWError(65550, "X11: The DISPLAY environment variable is missing"), ErrorException("glfwInit failed")]
+Stacktrace:
+  [1] __init__()
+    @ GLFW ~/.julia/packages/GLFW/Zwulj/src/GLFW.jl:69
+  [2] run_module_init(mod::Module, i::Int64)
+    @ Base ./loading.jl:1378
+  [3] register_restored_modules(sv::Core.SimpleVector, pkg::Base.PkgId, path::String)
+    @ Base ./loading.jl:1366
+  [4] _include_from_serialized(pkg::Base.PkgId, path::String, ocachepath::String, depmods::Vector{Any}, ignore_native::Nothing; register::Bool)
+    @ Base ./loading.jl:1254
+  [5] _include_from_serialized (repeats 2 times)
+    @ ./loading.jl:1210 [inlined]
+  [6] _require_search_from_serialized(pkg::Base.PkgId, sourcepath::String, build_id::UInt128, stalecheck::Bool; reasons::Dict{String, Int64}, DEPOT_PATH::Vector{String})
+    @ Base ./loading.jl:2057
+  [7] _require(pkg::Base.PkgId, env::String)
+    @ Base ./loading.jl:2527
+  [8] __require_prelocked(uuidkey::Base.PkgId, env::String)
+    @ Base ./loading.jl:2388
+  [9] #invoke_in_world#3
+    @ ./essentials.jl:1089 [inlined]
+ [10] invoke_in_world
+    @ ./essentials.jl:1086 [inlined]
+ [11] _require_prelocked(uuidkey::Base.PkgId, env::String)
+    @ Base ./loading.jl:2375
+ [12] macro expansion
+    @ ./loading.jl:2314 [inlined]
+ [13] macro expansion
+    @ ./lock.jl:273 [inlined]
+ [14] __require(into::Module, mod::Symbol)
+    @ Base ./loading.jl:2271
+ [15] #invoke_in_world#3
+    @ ./essentials.jl:1089 [inlined]
+ [16] invoke_in_world
+    @ ./essentials.jl:1086 [inlined]
+ [17] require(into::Module, mod::Symbol)
+    @ Base ./loading.jl:2260
+ [18] top-level scope
+    @ ~/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:2
+ [19] include(mod::Module, _path::String)
+    @ Base ./Base.jl:562
+ [20] include(x::String)
+    @ GLMakie ~/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:1
+ [21] top-level scope
+    @ ~/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:90
+ [22] include
+    @ ./Base.jl:562 [inlined]
+ [23] include_package_for_output(pkg::Base.PkgId, input::String, depot_path::Vector{String}, dl_load_path::Vector{String}, load_path::Vector{String}, concrete_deps::Vector{Pair{Base.PkgId, UInt128}}, source::Nothing)
+    @ Base ./loading.jl:2881
+ [24] top-level scope
+    @ stdin:6
+during initialization of module GLFW
+in expression starting at /home/jules/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:1
+in expression starting at /home/jules/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:1
+in expression starting at stdin:Precompiling GLMakie...
+Info Given GLMakie was explicitly requested, output will be shown live [0K
+[0K┌ Warning:     OpenGL/GLFW wasn't loaded correctly or couldn't be initialized.
+[0K│     This likely means, you're on a headless server without having OpenGL support setup correctly.
+[0K│     Have a look at the troubleshooting section in the readme:
+[0K│     https://github.com/MakieOrg/Makie.jl/tree/master/GLMakie#troubleshooting-opengl.
+[0K└ @ GLMakie ~/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:4
+[0KERROR: LoadError: InitError: Exception[GLFW.GLFWError(65550, "X11: The DISPLAY environment variable is missing"), ErrorException("glfwInit failed")]
+[0KStacktrace:
+[0K  [1] __init__()
+[0K    @ GLFW ~/.julia/packages/GLFW/Zwulj/src/GLFW.jl:69
+[0K  [2] run_module_init(mod::Module, i::Int64)
+[0K    @ Base ./loading.jl:1378
+[0K  [3] register_restored_modules(sv::Core.SimpleVector, pkg::Base.PkgId, path::String)
+[0K    @ Base ./loading.jl:1366
+[0K  [4] _include_from_serialized(pkg::Base.PkgId, path::String, ocachepath::String, depmods::Vector{Any}, ignore_native::Nothing; register::Bool)
+[0K    @ Base ./loading.jl:1254
+[0K  [5] _include_from_serialized (repeats 2 times)
+[0K    @ ./loading.jl:1210 [inlined]
+[0K  [6] _require_search_from_serialized(pkg::Base.PkgId, sourcepath::String, build_id::UInt128, stalecheck::Bool; reasons::Dict{String, Int64}, DEPOT_PATH::Vector{String})
+[0K    @ Base ./loading.jl:2057
+[0K  [7] _require(pkg::Base.PkgId, env::String)
+[0K    @ Base ./loading.jl:2527
+[0K  [8] __require_prelocked(uuidkey::Base.PkgId, env::String)
+[0K    @ Base ./loading.jl:2388
+[0K  [9] #invoke_in_world#3
+[0K    @ ./essentials.jl:1089 [inlined]
+[0K [10] invoke_in_world
+[0K    @ ./essentials.jl:1086 [inlined]
+[0K [11] _require_prelocked(uuidkey::Base.PkgId, env::String)
+[0K    @ Base ./loading.jl:2375
+[0K [12] macro expansion
+[0K    @ ./loading.jl:2314 [inlined]
+[0K [13] macro expansion
+[0K    @ ./lock.jl:273 [inlined]
+[0K [14] __require(into::Module, mod::Symbol)
+[0K    @ Base ./loading.jl:2271
+[0K [15] #invoke_in_world#3
+[0K    @ ./essentials.jl:1089 [inlined]
+[0K [16] invoke_in_world
+[0K    @ ./essentials.jl:1086 [inlined]
+[0K [17] require(into::Module, mod::Symbol)
+[0K    @ Base ./loading.jl:2260
+[0K [18] top-level scope
+[0K    @ ~/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:2
+[0K [19] include(mod::Module, _path::String)
+[0K    @ Base ./Base.jl:562
+[0K [20] include(x::String)
+[0K    @ GLMakie ~/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:1
+[0K [21] top-level scope
+[0K    @ ~/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:90
+[0K [22] include
+[0K    @ ./Base.jl:562 [inlined]
+[0K [23] include_package_for_output(pkg::Base.PkgId, input::String, depot_path::Vector{String}, dl_load_path::Vector{String}, load_path::Vector{String}, concrete_deps::Vector{Pair{Base.PkgId, UInt128}}, source::Nothing)
+[0K    @ Base ./loading.jl:2881
+[0K [24] top-level scope
+[0K    @ stdin:6
+[0Kduring initialization of module GLFW
+[0Kin expression starting at /home/jules/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:1
+[0Kin expression starting at /home/jules/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:1
+[0Kin expression starting at stdin:6
+           ✗ GLMakie
+  0 dependencies successfully precompiled in 14 seconds. 284 already precompiled.
+
+ERROR: LoadError: The following 1 direct dependency failed to precompile:
+
+GLMakie
+
+Failed to precompile GLMakie [e9467ef8-e4e7-5192-8a1a-b1aee30e663a] to "/home/jules/.julia/compiled/v1.11/GLMakie/jl_ruq8vn".
+┌ Warning:     OpenGL/GLFW wasn't loaded correctly or couldn't be initialized.
+│     This likely means, you're on a headless server without having OpenGL support setup correctly.
+│     Have a look at the troubleshooting section in the readme:
+│     https://github.com/MakieOrg/Makie.jl/tree/master/GLMakie#troubleshooting-opengl.
+└ @ GLMakie ~/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:4
+ERROR: LoadError: InitError: Exception[GLFW.GLFWError(65550, "X11: The DISPLAY environment variable is missing"), ErrorException("glfwInit failed")]
+Stacktrace:
+  [1] __init__()
+    @ GLFW ~/.julia/packages/GLFW/Zwulj/src/GLFW.jl:69
+  [2] run_module_init(mod::Module, i::Int64)
+    @ Base ./loading.jl:1378
+  [3] register_restored_modules(sv::Core.SimpleVector, pkg::Base.PkgId, path::String)
+    @ Base ./loading.jl:1366
+  [4] _include_from_serialized(pkg::Base.PkgId, path::String, ocachepath::String, depmods::Vector{Any}, ignore_native::Nothing; register::Bool)
+    @ Base ./loading.jl:1254
+  [5] _include_from_serialized (repeats 2 times)
+    @ ./loading.jl:1210 [inlined]
+  [6] _require_search_from_serialized(pkg::Base.PkgId, sourcepath::String, build_id::UInt128, stalecheck::Bool; reasons::Dict{String, Int64}, DEPOT_PATH::Vector{String})
+    @ Base ./loading.jl:2057
+  [7] _require(pkg::Base.PkgId, env::String)
+    @ Base ./loading.jl:2527
+  [8] __require_prelocked(uuidkey::Base.PkgId, env::String)
+    @ Base ./loading.jl:2388
+  [9] #invoke_in_world#3
+    @ ./essentials.jl:1089 [inlined]
+ [10] invoke_in_world
+    @ ./essentials.jl:1086 [inlined]
+ [11] _require_prelocked(uuidkey::Base.PkgId, env::String)
+    @ Base ./loading.jl:2375
+ [12] macro expansion
+    @ ./loading.jl:2314 [inlined]
+ [13] macro expansion
+    @ ./lock.jl:273 [inlined]
+ [14] __require(into::Module, mod::Symbol)
+    @ Base ./loading.jl:2271
+ [15] #invoke_in_world#3
+    @ ./essentials.jl:1089 [inlined]
+ [16] invoke_in_world
+    @ ./essentials.jl:1086 [inlined]
+ [17] require(into::Module, mod::Symbol)
+    @ Base ./loading.jl:2260
+ [18] top-level scope
+    @ ~/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:2
+ [19] include(mod::Module, _path::String)
+    @ Base ./Base.jl:562
+ [20] include(x::String)
+    @ GLMakie ~/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:1
+ [21] top-level scope
+    @ ~/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:90
+ [22] include
+    @ ./Base.jl:562 [inlined]
+ [23] include_package_for_output(pkg::Base.PkgId, input::String, depot_path::Vector{String}, dl_load_path::Vector{String}, load_path::Vector{String}, concrete_deps::Vector{Pair{Base.PkgId, UInt128}}, source::Nothing)
+    @ Base ./loading.jl:2881
+ [24] top-level scope
+    @ stdin:6
+during initialization of module GLFW
+in expression starting at /home/jules/.julia/packages/GLMakie/6el3D/src/gl_backend.jl:1
+in expression starting at /home/jules/.julia/packages/GLMakie/6el3D/src/GLMakie.jl:1
+in expression starting at stdin:
+in expression starting at /app/test/poisson2D.jl:5

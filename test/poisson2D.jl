@@ -6,7 +6,8 @@ using GLMakie
 using IterativeSolvers
 using Preconditioners
 using Random
-
+using ArgParse
+using JLD2
 
 function addmeasurements(msm,solvername,ti,ts,res,iterations=[])
     push!(msm,(solver=solvername,init_time=ti,solver_time=ts,residual=res,iterations=iterations))
@@ -159,15 +160,42 @@ function tostring(bcs)
     r
 end
 
+function parse_bc_string(s::String)
+    s = uppercase(s)
+    length(s) != 4 && error("Boundary condition string must have 4 characters (e.g., 'DNDN')")
+    bcs = []
+    for char in s
+        if char == 'D'
+            push!(bcs, dirichlet)
+        elseif char == 'N'
+            push!(bcs, neumann)
+        else
+            error("Invalid character in boundary condition string: $char. Use 'D' for Dirichlet or 'N' for Neumann.")
+        end
+    end
+    (bcs[1], bcs[2], bcs[3], bcs[4])
+end
 
-function go()
-    #Choose a power of two
-    n=128
-    #Choose boundary conditions
-    # bc=(neumann,neumann,neumann,neumann)
-    bc=(dirichlet,neumann,dirichlet,neumann)
-    # bc=(dirichlet,dirichlet,dirichlet,dirichlet)
+function parse_commandline()
+    s = ArgParseSettings()
+    @add_arg_table s begin
+        "--n"
+            help = "Grid size (must be a power of two)"
+            arg_type = Int
+            default = 128
+        "--bc"
+            help = "Boundary conditions (e.g., DNDN, NNNN, DDDD)"
+            arg_type = String
+            default = "DNDN"
+    end
+    return parse_args(s)
+end
 
+function main()
+    parsed_args = parse_commandline()
+    n = parsed_args["n"]
+    bc_str = parsed_args["bc"]
+    bc = parse_bc_string(bc_str)
 
     p,pref,pbj,s,b,msm=testpoisson(n,bc)
 
@@ -209,8 +237,4 @@ function go()
     nothing
 end
 
-
-
-
-
-go()
+main()
