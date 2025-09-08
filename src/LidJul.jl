@@ -1,9 +1,10 @@
 module LidJul
 
-    export BoundaryCondition,dirichlet,neumann
+    export BoundaryCondition,dirichlet,neumann, plot_interactive
 
     @enum BoundaryCondition dirichlet=0 neumann=1
 
+    include("interactive_plotting.jl")
     include("laplacian1D.jl")
     include("laplacian2D.jl")
     # include("poisson2D_ADI.jl")
