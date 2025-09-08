@@ -16,7 +16,7 @@ p = plot_interactive(a, b)
 
 # 3. Save the plot to a file
 # This will allow us to verify that the plot is generated without having to display it.
-output_filename = "interactive_plot_with_slider.html"
+output_filename = "interactive_subplots.html"
 savefig(p, output_filename)
 
 println("Interactive plot saved to $(output_filename)")
