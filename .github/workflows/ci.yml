@@ -59,8 +59,8 @@ jobs:
           using Pkg, LinearAlgebra
           Pkg.instantiate()
           BLAS.set_num_threads(1)
-          include("benchmark/benchmarks.jl")
-          benchmark_report(grids=((8,16),), types=(Float64,), tolerances=(1e-7,), samples=3, seconds=0.01)
+          include(joinpath(ENV["GITHUB_WORKSPACE"], "benchmark", "benchmarks.jl"))
+          benchmark_report(output=joinpath(ENV["RUNNER_TEMP"], "benchmark-smoke.toml"), grids=((8,16),), types=(Float64,), tolerances=(1e-7,), samples=3, seconds=0.01)
   cavity-validation:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -76,8 +76,8 @@ jobs:
           using Pkg, LinearAlgebra
           Pkg.instantiate()
           BLAS.set_num_threads(1)
-          include("validation/cavity_reference.jl")
-          cavity_validation(output="validation/results.toml")
+          include(joinpath(ENV["GITHUB_WORKSPACE"], "validation", "cavity_reference.jl"))
+          cavity_validation(output=joinpath(ENV["GITHUB_WORKSPACE"], "validation", "results.toml"))
       - uses: actions/upload-artifact@v4
         with:
           name: cavity-validation
