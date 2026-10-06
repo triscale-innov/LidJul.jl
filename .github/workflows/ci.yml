@@ -3,6 +3,8 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   test:
     strategy:
@@ -44,6 +46,32 @@ jobs:
           name: documentation
           path: docs/build/
           if-no-files-found: error
+      - name: Prepare documentation for GitHub Pages
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - name: Upload GitHub Pages site
+        if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/build/
+
+  deploy-docs:
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: docs
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish Documenter site
+        id: deployment
+        uses: actions/deploy-pages@v4
 
   benchmark-smoke:
     runs-on: ubuntu-latest
@@ -59,6 +87,9 @@ jobs:
           using Pkg, LinearAlgebra
           Pkg.instantiate()
           BLAS.set_num_threads(1)
+          include(joinpath(ENV["GITHUB_WORKSPACE"], "benchmark", "render_summary.jl"))
+          render_summary()
+          run(`git diff --exit-code -- README.md docs/src/assets/solver_comparison.md`)
           include(joinpath(ENV["GITHUB_WORKSPACE"], "benchmark", "benchmarks.jl"))
           benchmark_report(output=joinpath(ENV["RUNNER_TEMP"], "benchmark-smoke.toml"), grids=((8,16),), types=(Float64,), tolerances=(1e-7,), samples=3, seconds=0.01)
   cavity-validation:

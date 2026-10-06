@@ -18,5 +18,7 @@ LocalPreferences.toml
 /interactive_*.html
 /checks.json
 
-# Maintained documentation figure
-!/docs/src/assets/cavity_reference.svg
+# Maintained documentation media
+!/docs/src/assets/*.svg
+!/docs/src/assets/*.png
+!/docs/src/assets/*.gif

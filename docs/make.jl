@@ -3,7 +3,9 @@ using Documenter, LidJul
 DocMeta.setdocmeta!(LidJul,:DocTestSetup,:(using LidJul);recursive=true)
 makedocs(
     modules=[LidJul],
-    format=Documenter.HTML(prettyurls=get(ENV,"CI","false")=="true"),
+    format=Documenter.HTML(prettyurls=get(ENV,"CI","false")=="true",
+                          canonical="https://triscale-innov.github.io/LidJul.jl/",
+                          edit_link="master"),
     checkdocs=:exports,
     doctest=true,
     sitename="LidJul.jl",

@@ -9,6 +9,20 @@ LidJul solves cell-centered Poisson problems and the two-dimensional
 lid-driven cavity on a staggered MAC grid. The numerical core runs without a
 graphics backend and supports Julia 1.13, `Float32`, and `Float64`.
 
+![Re=100 cavity evolution](assets/cavity_evolution.gif)
+
+This actual 32 × 32 transient at Re = 100 shows speed, streamfunction contours,
+centerline velocity and measured divergence, up to t = 15.
+Reproduce it with `julia --project=examples examples/readme_media.jl`.
+
+## Compare the solvers
+
+![Measured cached solve times](assets/solver_timings.svg)
+
+The [benchmark guide](@ref Benchmarks) separates construction from repeated
+solves and reports all 216 accuracy-checked cases. The six methods share the
+same physical stopping rule.
+
 ## Installation
 
 From a checkout of this repository:
@@ -57,3 +71,6 @@ julia --project=docs docs/make.jl
 
 The build checks all exported docstrings and treats documentation errors as
 failures. Open `docs/build/index.html` after a successful build.
+Pushes to `master` also publish the generated site to
+[GitHub Pages](https://triscale-innov.github.io/LidJul.jl/). Pull requests build
+and check the documentation without deploying it.

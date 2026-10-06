@@ -38,6 +38,28 @@ current performance claims. Tensor transforms and multigrid have different setup
 and asymptotic costs; results should be compared at an equal physical tolerance
 and with construction amortization stated explicitly.
 
+## Measured solver comparison
+
+Julia 1.13.1, Apple M1, one BLAS thread and ten Julia threads in the process.
+`Float64`, a 1 × 1.5 domain, D/N/D/N boundaries (left/right/bottom/top), and
+`reltol=1e-8`. All selected cases satisfy the physical stopping rule.
+Times are minimum warmed trials, with 13–20 solve samples in this selection.
+
+```@eval
+using Markdown, LidJul
+Markdown.parse(read(joinpath(dirname(dirname(pathof(LidJul))), "docs", "src", "assets", "solver_comparison.md"), String))
+```
+
+![Measured solve times across three grids](assets/solver_timings.svg)
+
+The table is generated from `benchmark/results.toml`, including setup
+measurements and iteration counts. Regenerate it with
+`julia --project=benchmark benchmark/render_summary.jl`; this also updates the
+corresponding README table. Tensor transforms exploit this separable operator;
+sparse LU trades a factorization cost for cheap repeated solves, while GMG has
+inexpensive construction. Operator, grid size and tolerance can change the
+comparison.
+
 ## Executed local run
 
 The checked-in `benchmark/results.toml` contains 216 accuracy-checked cases with

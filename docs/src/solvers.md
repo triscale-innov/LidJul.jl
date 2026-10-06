@@ -5,6 +5,13 @@ DocTestSetup = :(using LidJul)
 
 # Solvers
 
+![Actual multigrid convergence](assets/multigrid_convergence.gif)
+
+This 32 × 64 mixed-boundary example applies one GMG V-cycle per advancing frame.
+The physical residual reaches the `reltol=1e-9` threshold after 11 cycles.
+`examples/readme_media.jl` records the numerical iterations and then holds the
+final frame.
+
 All Poisson solvers use `solve!(x, b, solver; reltol, abstol, maxiter,
 store_history)` and return the same result type. Convergence means
 `norm(A*x-b) <= max(abstol, reltol*norm(b))`, measured with the original operator.
