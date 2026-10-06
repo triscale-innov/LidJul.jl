@@ -5,10 +5,17 @@
 [![Julia](https://img.shields.io/badge/Julia-1.13-9558b2)](https://julialang.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
-**Compare Poisson solvers. Watch a cavity flow develop. Reproduce the measurements.**
+**Compare the many methods available in Julia for solving the Poisson equation.**
 
-LidJul combines six Poisson solvers with an incompressible lid-driven cavity on a
-staggered MAC grid. It supports `Float32` and `Float64`, rectangular domains,
+LidJul's main purpose is to explore and compare Julia's Poisson-solving methods:
+direct solvers, stationary iterations, Krylov methods, and algebraic or geometric
+multigrid. The benchmarks compare construction cost, solve time, convergence and
+allocations under a common physical stopping rule. The six methods in the timing
+table are a representative selection; the solver interface also exposes Jacobi,
+Gauss–Seidel, SOR and SSOR.
+
+The lid-driven cavity is an application of these solvers: its pressure projection
+requires a Poisson solve at every timestep. LidJul supports `Float32` and `Float64`, rectangular domains,
 all combinations of Dirichlet/Neumann boundaries, and a common convergence API.
 The numerical core runs without a graphics backend; CairoMakie provides figures
 and animations without an OpenGL display.
@@ -17,12 +24,6 @@ and animations without an OpenGL display.
 [Solver guide](https://triscale-innov.github.io/LidJul.jl/solvers/) ·
 [Validation](https://triscale-innov.github.io/LidJul.jl/validation/) ·
 [Migration to 0.3](https://triscale-innov.github.io/LidJul.jl/migration/)
-
-![Re=100 cavity evolution: speed, streamlines and vertical centerline velocity](docs/src/assets/cavity_evolution.gif)
-
-*A computed transient at Re = 100: 32 × 32 cells, dt = 0.005, t up to 15.
-The lid moves to the right; streamfunction contours show the circulation.
-The centerline profile and divergence come from the same simulation.*
 
 ## Solver performance
 
@@ -34,10 +35,10 @@ boundaries (left/right/bottom/top), and a physical relative residual tolerance o
 
 <!-- benchmark-table:start -->
 
-| Solver | Solve 16 × 32 (ms) | Solve 32 × 64 (ms) | Solve 64 × 64 (ms) | Setup 64 × 64 (ms) | Iterations at 64 × 64 |
+| Solver | Solve 16 × 32 (ms) | Solve 32 × 64 (ms) | Solve 64 × 64 (ms) | Setup 64 × 64 (ms) | Method / iterations at 64 × 64 |
 |:--|--:|--:|--:|--:|--:|
-| Tensor | 0.007 | 0.036 | 0.081 | 0.321 | 1 |
-| SparseLU | 0.016 | 0.073 | 0.162 | 4.111 | 1 |
+| Tensor | 0.007 | 0.036 | 0.081 | 0.321 | Direct |
+| SparseLU | 0.016 | 0.073 | 0.162 | 4.111 | Direct |
 | GMG | 0.082 | 0.291 | 0.702 | 0.015 | 10 |
 | ILU + GMRES | 0.079 | 0.458 | 1.509 | 14.703 | 4 |
 | AMG | 0.260 | 1.384 | 3.232 | 1.723 | 7 |
@@ -46,6 +47,8 @@ boundaries (left/right/bottom/top), and a physical relative residual tolerance o
 <!-- benchmark-table:end -->
 
 Times are minimum warmed trials, with 13–20 solve samples in this selection.
+“Direct” identifies methods that compute a solution without an iterative
+convergence loop; numerical iteration counts apply to the iterative methods.
 Construction is separate; every cached solve starts from zero and excludes
 history storage. These measurements illustrate the setup/solve tradeoff;
 other grids, operators and hardware can change the ranking.
@@ -58,6 +61,15 @@ and uses red-black smoothing with a direct coarse solve. AMG, ILU with GMRES,
 and unpreconditioned CG provide sparse iterative alternatives.
 See the [benchmark methodology](https://triscale-innov.github.io/LidJul.jl/benchmarks/)
 for all **216 cases**, tolerances, allocations and environment metadata.
+
+## Poisson in action: the lid-driven cavity
+
+![Re=100 cavity evolution with velocity streamlines and speed colors](docs/src/assets/cavity_evolution.gif)
+
+*A computed transient at Re = 100: 64 × 64 cells, dt = 0.005, t up to 15.
+The lid moves to the right. Smooth streamlines and arrows follow the interpolated
+staggered velocity field; the background shows speed on a fixed, square-root color scale.
+The centerline profile and divergence come from the same simulation.*
 
 ## Watch multigrid converge
 

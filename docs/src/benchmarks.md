@@ -44,6 +44,8 @@ Julia 1.13.1, Apple M1, one BLAS thread and ten Julia threads in the process.
 `Float64`, a 1 × 1.5 domain, D/N/D/N boundaries (left/right/bottom/top), and
 `reltol=1e-8`. All selected cases satisfy the physical stopping rule.
 Times are minimum warmed trials, with 13–20 solve samples in this selection.
+“Direct” marks a direct solution method, rather than an iterative convergence
+loop. Counts in the last column refer to iterative methods.
 
 ```@eval
 using Markdown, LidJul

@@ -9,15 +9,16 @@ function render_summary(; report=joinpath(@__DIR__, "results.toml"),
     end
     methods = ("Tensor", "SparseLU", "GMG", "ILU_GMRES", "AMG", "CG")
     open(output, "w") do io
-        println(io, "| Solver | Solve 16 × 32 (ms) | Solve 32 × 64 (ms) | Solve 64 × 64 (ms) | Setup 64 × 64 (ms) | Iterations at 64 × 64 |")
+        println(io, "| Solver | Solve 16 × 32 (ms) | Solve 32 × 64 (ms) | Solve 64 × 64 (ms) | Setup 64 × 64 (ms) | Method / iterations at 64 × 64 |")
         println(io, "|:--|--:|--:|--:|--:|--:|")
         for method in methods
             selected = Dict((row["nx"], row["ny"]) => row for row in rows if row["solver"] == method)
             last = selected[(64, 64)]
             @assert all(row["converged"] && row["relative_residual"] <= 1e-8 for row in values(selected))
             times = [selected[grid]["solve_nanoseconds"] / 1e6 for grid in ((16, 32), (32, 64), (64, 64))]
-            @printf(io, "| %s | %.3f | %.3f | %.3f | %.3f | %d |\n", replace(method, "_" => " + "),
-                    times[1], times[2], times[3], last["setup_nanoseconds"] / 1e6, last["iterations"])
+            description = method in ("Tensor", "SparseLU") ? "Direct" : string(last["iterations"])
+            @printf(io, "| %s | %.3f | %.3f | %.3f | %.3f | %s |\n", replace(method, "_" => " + "),
+                    times[1], times[2], times[3], last["setup_nanoseconds"] / 1e6, description)
         end
     end
     readme = joinpath(@__DIR__, "..", "README.md")

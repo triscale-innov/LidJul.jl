@@ -25,31 +25,68 @@ function benchmark_figure(; output=joinpath(MEDIA_DIRECTORY, "solver_timings.svg
     figure
 end
 
-"""Record a real Re=100 transient using CairoMakie, without an OpenGL display."""
+"""Bilinearly interpolate the MAC velocity, with reflected tangential wall ghosts."""
+function cavity_velocity(state, point)
+    c = state.config
+    x, y = point
+    ux, uy = x * c.nx + 1, y * c.ny + 0.5
+    vx, vy = x * c.nx + 0.5, y * c.ny + 1
+    iu, ju = clamp(floor(Int, ux), 1, c.nx), clamp(floor(Int, uy), 0, c.ny)
+    iv, jv = clamp(floor(Int, vx), 0, c.nx), clamp(floor(Int, vy), 1, c.ny)
+    u(i, j) = j == 0 ? -state.u[i, 1] : j == c.ny + 1 ? 2c.lid_velocity - state.u[i, end] : state.u[i, j]
+    v(i, j) = i == 0 ? -state.v[1, j] : i == c.nx + 1 ? -state.v[end, j] : state.v[i, j]
+    blend(f, i, j, a, b) = (1-a) * ((1-b) * f(i, j) + b * f(i, j+1)) +
+                          a * ((1-b) * f(i+1, j) + b * f(i+1, j+1))
+    Point2f(blend(u, iu, ju, ux-iu, uy-ju), blend(v, iv, jv, vx-iv, vy-jv))
+end
+
+"""Record a computed Re=100 flow with smooth velocity streamlines and a fixed speed scale."""
 function cavity_animation(; output=joinpath(MEDIA_DIRECTORY, "cavity_evolution.gif"),
-                          nx=32, frames=120, steps_per_frame=25, dt=0.005, framerate=12)
+                          nx=64, frames=120, steps_per_frame=25, dt=0.005, framerate=12)
     config = CavityConfig(; nx, Re=100, dt, tf=frames * steps_per_frame * dt, pressure_reltol=1e-11)
     state = CavityState(config)
     speed = Observable(zeros(nx, nx))
-    streamfunction = Observable(zeros(nx + 1, nx + 1))
+    velocity = Observable{Function}(point -> cavity_velocity(state, point))
     profile = Observable(centerline_velocities(state).u)
-    status = Observable("t = 0.00 · divergence = 0.0")
+    status = Observable("t = 0.00 · RMS divergence = 0.0")
     cells = ((1:nx) .- 0.5) ./ nx
-    nodes = range(0, 1; length=nx + 1)
     profile_y = centerline_velocities(state).y
-    figure = Figure(size=(960, 500), fontsize=17)
-    Label(figure[0, 1:3], "Lid-driven cavity · Re = 100", fontsize=25, font=:bold)
-    Label(figure[1, 1:3], "$(nx) × $(nx) staggered grid · incremental pressure projection · dt = $(dt)", fontsize=15)
-    flow = Axis(figure[2, 1], title="Speed and streamlines", xlabel="x / L", ylabel="y / L", aspect=DataAspect())
-    heat = heatmap!(flow, cells, cells, speed; colorrange=(0, 1), colormap=:viridis)
-    contour!(flow, nodes, nodes, streamfunction; levels=collect(-0.10:0.01:-0.01), color=(:white, 0.8), linewidth=1.5)
-    Colorbar(figure[2, 2], heat; label="Speed / lid velocity")
-    axis = Axis(figure[2, 3], title="Vertical centerline", xlabel="u / lid velocity", ylabel="y / L")
-    lines!(axis, profile, profile_y; color=:steelblue, linewidth=3)
+    background, foreground, accent = "#101a2b", "#edf3fc", "#6ee7d2"
+    figure = Figure(size=(1080, 690), fontsize=18, backgroundcolor=background)
+    Label(figure[0, 1:3], "LID-DRIVEN CAVITY", fontsize=28, font=:bold, color=foreground)
+    Label(figure[1, 1:3], "Re = 100   ·   $(nx) × $(nx) MAC grid   ·   dt = $(dt)", fontsize=16, color=accent)
+    function dark_axis(position; kwargs...)
+        Axis(position; backgroundcolor=background, xlabelcolor=foreground, ylabelcolor=foreground,
+             xticklabelcolor=foreground, yticklabelcolor=foreground, xtickcolor=foreground,
+             ytickcolor=foreground, spinewidth=1, leftspinecolor="#63738b", bottomspinecolor="#63738b",
+             rightspinevisible=false, topspinevisible=false, titlecolor=foreground,
+             xgridvisible=false, ygridvisible=false, kwargs...)
+    end
+    flow = dark_axis(figure[2, 1]; xlabel="x / L", ylabel="y / L", aspect=DataAspect())
+    heat = heatmap!(flow, cells, cells, speed; colorrange=(0, 1), colormap=:magma,
+                    colorscale=sqrt, interpolate=true)
+    streamplot!(flow, velocity, 0.004..0.996, 0.004..0.996;
+                gridsize=(28, 28), density=0.6, stepsize=0.004, maxsteps=1400,
+                color=_->RGBAf(0.91, 0.97, 1, 0.82), linewidth=1.15, arrow_size=7)
+    lines!(flow, [Point2f(0.03, 1.025), Point2f(0.94, 1.025)]; color=accent, linewidth=3)
+    scatter!(flow, [Point2f(0.94, 1.025)]; color=accent, marker=:rtriangle, markersize=15)
+    xlims!(flow, 0, 1)
+    ylims!(flow, 0, 1.06)
+    Colorbar(figure[2, 2], heat; label="Speed / lid velocity", labelcolor=foreground,
+             ticklabelcolor=foreground, tickcolor=foreground,
+             leftspinecolor="#63738b", rightspinecolor="#63738b",
+             topspinecolor="#63738b", bottomspinecolor="#63738b",
+             ticks=[0, 0.1, 0.3, 0.6, 1], width=18)
+    axis = dark_axis(figure[2, 3]; title="Vertical centerline", xlabel="u / lid velocity", ylabel="y / L")
+    hlines!(axis, [0.5]; color=(:white, 0.12), linestyle=:dash)
+    vlines!(axis, [0]; color=(:white, 0.12), linestyle=:dash)
+    lines!(axis, profile, profile_y; color=accent, linewidth=3)
     xlims!(axis, -0.35, 1.05)
     ylims!(axis, 0, 1)
-    Label(figure[3, 1:3], status; fontsize=15)
-    record(figure, output, 1:(frames + 12); framerate) do frame
+    colsize!(figure.layout, 1, Relative(0.62))
+    Label(figure[3, 1:3], status; fontsize=16, color=foreground)
+    Label(figure[4, 1:3], "Velocity streamlines with direction arrows · fixed speed scale (square-root color mapping)", fontsize=14, color="#acb9ce")
+    record(figure, output, 1:(frames + 12); framerate, px_per_unit=1.25) do frame
         if frame <= frames
             for _ in 1:steps_per_frame
                 step!(state)
@@ -57,14 +94,12 @@ function cavity_animation(; output=joinpath(MEDIA_DIRECTORY, "cavity_evolution.g
             uc = (state.u[1:end-1, :] + state.u[2:end, :]) / 2
             vc = (state.v[:, 1:end-1] + state.v[:, 2:end]) / 2
             speed[] = hypot.(uc, vc)
-            psi = zeros(nx + 1, nx + 1)
-            psi[:, 2:end] = cumsum(state.u; dims=2) / nx
-            streamfunction[] = psi
+            notify(velocity)
             profile[] = centerline_velocities(state).u
-            status[] = "t = $(round(state.time; digits=2)) · RMS divergence = $(round(state.divergence_after; sigdigits=2))"
+            status[] = "t = $(round(state.time; digits=2))   ·   RMS divergence = $(round(state.divergence_after; sigdigits=2))"
         end
     end
-    save(joinpath(dirname(output), "cavity_preview.png"), figure)
+    save(joinpath(dirname(output), "cavity_preview.png"), figure; px_per_unit=1.5)
     println("Cavity animation: t=", state.time, ", divergence=", state.divergence_after, ", wall error=", wall_error(state))
     @assert state.divergence_after < 1e-10 && wall_error(state) == 0
     state

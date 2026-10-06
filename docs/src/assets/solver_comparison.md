@@ -1,7 +1,7 @@
-| Solver | Solve 16 × 32 (ms) | Solve 32 × 64 (ms) | Solve 64 × 64 (ms) | Setup 64 × 64 (ms) | Iterations at 64 × 64 |
+| Solver | Solve 16 × 32 (ms) | Solve 32 × 64 (ms) | Solve 64 × 64 (ms) | Setup 64 × 64 (ms) | Method / iterations at 64 × 64 |
 |:--|--:|--:|--:|--:|--:|
-| Tensor | 0.007 | 0.036 | 0.081 | 0.321 | 1 |
-| SparseLU | 0.016 | 0.073 | 0.162 | 4.111 | 1 |
+| Tensor | 0.007 | 0.036 | 0.081 | 0.321 | Direct |
+| SparseLU | 0.016 | 0.073 | 0.162 | 4.111 | Direct |
 | GMG | 0.082 | 0.291 | 0.702 | 0.015 | 10 |
 | ILU + GMRES | 0.079 | 0.458 | 1.509 | 14.703 | 4 |
 | AMG | 0.260 | 1.384 | 3.232 | 1.723 | 7 |

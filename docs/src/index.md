@@ -5,15 +5,17 @@ DocTestSetup = :(using LidJul)
 
 # LidJul.jl
 
-LidJul solves cell-centered Poisson problems and the two-dimensional
-lid-driven cavity on a staggered MAC grid. The numerical core runs without a
-graphics backend and supports Julia 1.13, `Float32`, and `Float64`.
+LidJul's main purpose is to compare the many methods available in Julia for
+solving the Poisson equation: direct solvers, stationary iterations, Krylov
+methods, and algebraic or geometric multigrid. Construction cost, repeated solve
+time, convergence and allocations are compared using a common physical residual.
+The six methods in the timing table are a representative selection; Jacobi,
+Gauss–Seidel, SOR and SSOR are also available through the solver interface.
 
-![Re=100 cavity evolution](assets/cavity_evolution.gif)
-
-This actual 32 × 32 transient at Re = 100 shows speed, streamfunction contours,
-centerline velocity and measured divergence, up to t = 15.
-Reproduce it with `julia --project=examples examples/readme_media.jl`.
+The two-dimensional lid-driven cavity demonstrates an application of these
+solvers through a Poisson pressure projection at each timestep. The numerical
+core runs without a graphics backend and supports Julia 1.13, `Float32`, and
+`Float64`.
 
 ## Compare the solvers
 
@@ -22,6 +24,16 @@ Reproduce it with `julia --project=examples examples/readme_media.jl`.
 The [benchmark guide](@ref Benchmarks) separates construction from repeated
 solves and reports all 216 accuracy-checked cases. The six methods share the
 same physical stopping rule.
+
+## Poisson in action: the lid-driven cavity
+
+![Re=100 cavity evolution](assets/cavity_evolution.gif)
+
+This actual 64 × 64 transient at Re = 100 shows speed, smooth velocity
+streamlines with direction arrows, centerline velocity and measured divergence,
+up to t = 15. Streamlines follow the interpolated staggered velocity field;
+the square-root speed color scale remains fixed throughout the animation.
+Reproduce it with `julia --project=examples examples/readme_media.jl`.
 
 ## Installation
 
