@@ -1,14 +1,13 @@
-push!(LOAD_PATH,"../src/")
 using Documenter, LidJul
 
+DocMeta.setdocmeta!(LidJul,:DocTestSetup,:(using LidJul);recursive=true)
 makedocs(
-    modules = [LidJul],
-    format = Documenter.HTML(prettyurls = false),
-    checkdocs = :exports,
-    sitename = "LidJul.jl",
-    pages = Any["index.md"]
+    modules=[LidJul],
+    format=Documenter.HTML(prettyurls=get(ENV,"CI","false")=="true"),
+    checkdocs=:exports,
+    doctest=true,
+    sitename="LidJul.jl",
+    pages=["Home"=>"index.md", "Solvers"=>"solvers.md", "Neumann problems"=>"neumann.md",
+           "Cavity simulation"=>"cavity.md", "Validation"=>"validation.md",
+           "Benchmarks"=>"benchmarks.md", "Migration"=>"migration.md", "Modernization record"=>"modernization.md", "API"=>"api.md"],
 )
-
-# deploydocs(
-#     repo = "github.com/{GHUSER}/LidJul.jl.git",
-# )

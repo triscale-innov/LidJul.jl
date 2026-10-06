@@ -5,8 +5,6 @@
 export PoissonGMG_new,solve!
 using SparseArrays
 using LinearAlgebra
-using BenchmarkTools
-using LoopVectorization
 
 struct PoissonGMG_new{SMOOTHER}
     Sol::Vector{Array{Float64,2}}
@@ -38,6 +36,8 @@ function PoissonGMG_new(l2D,::Type{SMOOTHER};nlevels=-1,nprae=2,npost=1,ncoarse=
     bc=l2D.bc
     nlevels>maxlevels(nx) && error("nlevels too large")
     (nlevels==-1) && (nlevels=maxlevels(nx))
+    nlevels >= 1 || throw(ArgumentError("nlevels must be positive"))
+    min(nprae,npost,ncoarse) >= 0 || throw(ArgumentError("smoothing counts must be nonnegative"))
     # @show nlevels
 
     # add 1 ghost layer in each direction
@@ -70,6 +70,8 @@ end
 
 
 function solve!(Xxy,Bxy,g::PoissonGMG_new)
+    expected = size(g.Sol[1]) .- 2
+    size(Xxy) == size(Bxy) == expected || throw(DimensionMismatch("solution and RHS must have size $expected"))
     RHS,Sol,Solb,invh2=g.RHS,g.Sol,g.Solb,g.invh2
     nlevels=size(RHS,1)
     r1,s1=RHS[1],Sol[1]
@@ -82,6 +84,7 @@ function solve!(Xxy,Bxy,g::PoissonGMG_new)
         end
     end
 
+    treatboundary(1,s1,g)
     res_1=residual(1,g)
     residuals=img_solver(nlevels,res_1,g)
     (nx,ny)=size(Xxy)
@@ -206,8 +209,7 @@ end
 #     sqrt(res)
 # end
 
-# # using LoopVectorization
-
+# #
 # function restrict_residual(lev,g)
 #     rl1=g.RHS[lev+1]
 #     sl1=g.Sol[lev+1]

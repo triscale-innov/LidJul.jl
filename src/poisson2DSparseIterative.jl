@@ -1,80 +1,74 @@
-export PoissonSparseIterative,solve!
-using IterativeSolvers
+"""
+    PoissonSparseIterative(laplacian)
+    PoissonSparseIterative(matrix; neumann=...)
 
-struct PoissonSparseIterative
-    spLxy::SparseMatrixCSC{Float64,Int64}
-
-    function PoissonSparseIterative(sp)
-        new(sp)
+Sparse CG or stationary iteration solver. Select `method="cg"`, `"jacobi"`,
+`"gauss_seidel"`, `"sor"`, or `"ssor"` in `solve!`. All methods use the same
+physical stopping test and return `SolveResult`. Stationary iterations perform
+one sweep per iteration (forward/backward for SSOR) and reuse vector workspaces.
+Jacobi is damped by 2/3 for Neumann problems to suppress the alternating mode. Pure Neumann solutions are
+recentered after each sweep.
+"""
+struct PoissonSparseIterative{T<:AbstractFloat,P} <: AbstractPoissonSolver{T}
+    operator::SparseMatrixCSC{T,Int}
+    preconditioner::P
+    shape::Tuple{Int,Int}
+    allneumann::Bool
+    residual::Vector{T}
+    workx::Vector{T}
+    workb::Vector{T}
+end
+function PoissonSparseIterative(a::SparseMatrixCSC{T};neumann=_has_constant_nullspace(a),shape=(size(a,1),1)) where T
+    original,_=_matrix_and_anchor(a,neumann)
+    prod(shape)==size(a,1) || throw(DimensionMismatch("invalid operator shape"))
+    PoissonSparseIterative(original,IterativeSolvers.Identity(),shape,neumann,
+                           zeros(T,size(a,1)),zeros(T,size(a,1)),zeros(T,size(a,1)))
+end
+PoissonSparseIterative(a::Laplacian2D)=PoissonSparseIterative(sparse(a);neumann=a.allneumann,shape=size(a))
+function solve!(x,b,s::PoissonSparseIterative{T};method="cg",reltol=_default_reltol(T),abstol=zero(T),maxiter=1000,store_history=true) where T
+    method in ("cg","jacobi","gauss_seidel","sor","ssor") || throw(ArgumentError("unknown iterative method: $method"))
+    method=="cg" && return _krylov_solve!(x,b,s;reltol,abstol,maxiter,store_history)
+    threshold=_prepare(x,b,s;reltol,abstol,maxiter)
+    initial,history=_initial(x,b,s,threshold,store_history,maxiter)
+    initial===nothing || return initial
+    copyto!(s.workx,vec(x)); copyto!(s.workb,vec(b))
+    omega=T(2)/(one(T)+sin(T(π)/sqrt(T(length(x)))))
+    iterations=0
+    for k in 1:maxiter
+        _stationary_sweep!(s,method,omega)
+        s.allneumann && _recenter!(s.workx)
+        copyto!(vec(x),s.workx)
+        r=residual_norm(x,b,s)
+        store_history && push!(history,r)
+        iterations=k
+        r<=threshold && break
     end
+    _result(x,b,s,iterations,history,threshold)
 end
+solve!(x,b,s::PoissonSparseIterative,method::AbstractString;kwargs...)=solve!(x,b,s;method,kwargs...)
 
-function optimal_w(x1D)
-    h=1/sqrt(length(x1D))
-    w=2/(1+sin(π*h))
-end
-
-
-solve_sor!(x,a,b,nstep) = IterativeSolvers.sor!(x,a,b,optimal_w(x),maxiter=nstep)
-solve_ssor!(x,a,b,nstep) = IterativeSolvers.ssor!(x,a,b,optimal_w(x),maxiter=nstep)
-solve_gauss_seidel!(x,a,b,nstep) = IterativeSolvers.gauss_seidel!(x,a,b,maxiter=nstep)
-solve_jacobi!(x,a,b,nstep) = IterativeSolvers.jacobi!(x,a,b,maxiter=nstep)
-
-
-function solve!(Xxy,Bxy,sp::PoissonSparseIterative,method_name::String="cg")
-    b=view(Bxy,1:length(Bxy))
-    x=view(Xxy,1:length(Xxy))
-    A=sp.spLxy
-
-    method_name=="cg" && return IterativeSolvers.cg!(x,A,b;log=true,tol = 1e-10,maxiter=1000)
-    # method_name="jacobi" && solve_cg!(Xxy,Bxy,sp)
-    # method_name="gauss_seidel" && solve_cg!(Xxy,Bxy,sp)
-
-
-
-    # method_name=="gauss_seidel" && return IterativeSolvers.gauss_seidel!(x,A,b,maxiter=1000)
-    method_name=="gauss_seidel" && return solve_stationary!(Xxy,Bxy,sp::PoissonSparseIterative,solve_gauss_seidel!)
-    method_name=="jacobi" && return solve_stationary!(Xxy,Bxy,sp::PoissonSparseIterative,solve_jacobi!)
-    method_name=="sor" && return solve_stationary!(Xxy,Bxy,sp::PoissonSparseIterative,solve_sor!)
-    method_name=="ssor" && return solve_stationary!(Xxy,Bxy,sp::PoissonSparseIterative,solve_ssor!)
-
-
-
-    # method_name="ssor" && solve_cg!(Xxy,Bxy,sp)
-
-end
-
-
-
-
-function solve_stationary!(Xxy,Bxy,sp::PoissonSparseIterative,iterative_algorithm)
-    b=view(Bxy,1:length(Bxy))
-    x=view(Xxy,1:length(Xxy))
-    A=sp.spLxy
-
-    #LP: stationary methods looks to have problem with views...
-    x1D=zeros(length(Xxy))
-    b1D=zeros(length(Xxy))
-    copyto!(b1D,b)
-    copyto!(x1D,x)
-
-
-    residual=Vector{Float64}()
-    nstep=10
-    # h=1/size(Bxy,1)
-    # w=2/(1+sin(π*h))
-    # @show w
-    res=typemax(Float64)
-    iter=1
-    while res>1.e-8 && iter<2000
-        iterative_algorithm(x1D,A,b1D,nstep)
-        res=norm(A*x1D-b1D)
-        for i=1:nstep
-            push!(residual,res)
+function _stationary_sweep!(s,method,omega)
+    x,b,a,r=s.workx,s.workb,s.operator,s.residual
+    mul!(r,a,x)
+    @. r=b-r
+    if method=="jacobi"
+        # Damping removes the alternating nondecaying mode of a Neumann grid.
+        weight=s.allneumann ? eltype(x)(2/3) : one(eltype(x))
+        for i in eachindex(x)
+            x[i]+=weight*r[i]/a[i,i]
         end
-        iter+=nstep
+        return
     end
-    @show iterative_algorithm,iter
-    copyto!(x,x1D)
-    x,residual
+    weight=method=="gauss_seidel" ? one(eltype(x)) : omega
+    _coordinate_sweep!(x,r,a,weight,1:length(x))
+    method=="ssor" && _coordinate_sweep!(x,r,a,weight,length(x):-1:1)
+end
+function _coordinate_sweep!(x,r,a,weight,indices)
+    for col in indices
+        delta=weight*r[col]/a[col,col]
+        x[col]+=delta
+        @inbounds for k in nzrange(a,col)
+            r[a.rowval[k]]-=a.nzval[k]*delta
+        end
+    end
 end

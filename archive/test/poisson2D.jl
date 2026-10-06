@@ -4,7 +4,7 @@ using SparseArrays
 using BenchmarkTools
 using GLMakie
 using IterativeSolvers
-using Preconditioners
+using AlgebraicMultigrid
 using Random
 
 
@@ -33,15 +33,12 @@ function test_solver!(msm,Solver,solver_args,splu,b)
     p
 end
 
-function precoconstructor(A,preco)
-    if preco==CholeskyPreconditioner
-        return preco(A,4)
-    elseif preco===nothing
-        return IterativeSolvers.Identity()
-    else
-        return preco(A)
-    end
-end
+# Use the upstream preconditioners directly: the Preconditioners wrapper
+# currently prevents upgrading AlgebraicMultigrid to version 2.
+precoconstructor(A,preco) = preco === nothing ? IterativeSolvers.Identity() : preco(A)
+diagonal_preconditioner(A) = Diagonal(diag(A))
+amg_smoothed(A) = aspreconditioner(smoothed_aggregation(A))
+amg_ruge_stuben(A) = aspreconditioner(ruge_stuben(A))
 
 
 function test_pcg(msm,preco,A,splu,Bxy)
@@ -70,7 +67,7 @@ function test_stationary(msm,stm,A,splu,Bxy)
     p,iterations = begin copyto!(Xxy,Xxyrand) ; solve!(Xxy,Bxy,spiter,stm) end
     solve_time = @elapsed begin copyto!(Xxy,Xxyrand) ; solve!(Xxy,Bxy,spiter,stm) end
     sname=string(stm)
-    addmeasurements(msm,sname,init_time,solve_time,resnorm(splu,Xxy,Xxy),iterations)
+    addmeasurements(msm,sname,init_time,solve_time,resnorm(splu,Xxy,Bxy),iterations)
     nothing
 end
 
@@ -117,16 +114,15 @@ function testpoisson(n,bc)
     ts=@elapsed solve!(pref,b,splu)
 
     @time s2D_nocorr=SparseArrays.sparse(l2D)
-    splu_nocorr,tlu_nocorr=PoissonSparseLU(s2D_nocorr)
     stationary_methods=["jacobi","gauss_seidel","sor","ssor"]
     for stm in stationary_methods
         test_stationary(msm,stm,s2D,splu,b)
     end
 
-    test_pcg(msm,Preconditioners.DiagonalPreconditioner,s2D,splu,b)
+    test_pcg(msm,diagonal_preconditioner,s2D,splu,b)
     test_pcg(msm,nothing,s2D,splu,b)
-    test_pcg(msm,Preconditioners.AMGPreconditioner{SmoothedAggregation},s2D,splu,b)
-    test_pcg(msm,Preconditioners.AMGPreconditioner{RugeStuben},s2D,splu,b)
+    test_pcg(msm,amg_smoothed,s2D,splu,b)
+    test_pcg(msm,amg_ruge_stuben,s2D,splu,b)
     test_solver!(msm,PoissonSparseAMG,(s2D,),splu,b)
 
 
@@ -134,7 +130,7 @@ function testpoisson(n,bc)
 
     addmeasurements(msm,string(PoissonSparseLU),tlu,ts,resnorm(splu,pref,b))
 
-    test_solver!(msm,PoissonGMG,(l2D,GSSmoother),splu_nocorr,b)
+    test_solver!(msm,PoissonGMG,(l2D,GSSmoother),PoissonSparseIterative(s2D_nocorr),b)
 
     test_solver!(msm,PoissonSparseCGILU,(s2D,),splu,b)
 

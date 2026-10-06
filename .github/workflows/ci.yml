@@ -1,0 +1,84 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v2
+      - name: Test on the latest compatible dependencies
+        shell: julia --color=yes --project=. {0}
+        run: |
+          using Pkg
+          Pkg.update()
+          Pkg.test(; julia_args=["--check-bounds=yes", "--threads=2"])
+      - name: Run command-line examples without a display
+        run: julia --startup-file=no --project=. test/cli_smoke.jl
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v2
+      - name: Install documentation dependencies
+        shell: julia --color=yes --project=docs {0}
+        run: |
+          using Pkg
+          Pkg.instantiate()
+      - name: Build documentation
+        run: julia --color=yes --project=docs docs/make.jl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/build/
+          if-no-files-found: error
+
+  benchmark-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v2
+      - name: Verify benchmark construction and solve accuracy
+        shell: julia --color=yes --project=benchmark {0}
+        run: |
+          using Pkg, LinearAlgebra
+          Pkg.instantiate()
+          BLAS.set_num_threads(1)
+          include("benchmark/benchmarks.jl")
+          benchmark_report(grids=((8,16),), types=(Float64,), tolerances=(1e-7,), samples=3, seconds=0.01)
+  cavity-validation:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1.13'
+      - uses: julia-actions/cache@v2
+      - name: Run the published-reference refinement study
+        shell: julia --color=yes --project=benchmark {0}
+        run: |
+          using Pkg, LinearAlgebra
+          Pkg.instantiate()
+          BLAS.set_num_threads(1)
+          include("validation/cavity_reference.jl")
+          cavity_validation(output="validation/results.toml")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cavity-validation
+          path: validation/results.toml

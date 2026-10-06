@@ -4,7 +4,6 @@ using SparseArrays
 using BenchmarkTools
 using GLMakie
 using IterativeSolvers
-using Preconditioners
 using Random
 
 

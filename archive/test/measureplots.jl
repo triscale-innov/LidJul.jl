@@ -142,31 +142,31 @@ function measureplot(msm,sname)
     nr,nc=size(table)
     println("all methods")
 
-    pretty_table(table[:,1:6],header=collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    pretty_table(table[:,1:6],column_labels=collect(header[1:6]);formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
     # println("converged methods")
     # ctable=table[filter(i->(!isnan(table[i,5]) && table[i,5]<1.e-6),1:size(table,1)),:]
-    # pretty_table(ctable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(ctable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
 
     # println("non converged methods")
     # nctable=table[filter(i->(isnan(table[i,5]) ||  table[i,5]>1.e-6),1:size(table,1)),:]
-    # pretty_table(nctable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(nctable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
     # println("converged iterative methods")
     # ictable=ctable[filter(i->ctable[i,6]!==nothing,1:size(ctable,1)),:]
-    # pretty_table(ictable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(ictable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
     # println("efficient converged iterative methods")
     # iectable=ictable[filter(i->ictable[i,4]<10.0,1:size(ictable,1)),:]
-    # pretty_table(ictable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(ictable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
     # println("iterative methods")
     # itable=table[filter(i->table[i,6]!==nothing,1:size(table,1)),:]
-    # pretty_table(itable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(itable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
     # println("fast methods")
     # ftable=ictable[filter(i->(ictable[i,6]<25 && ictable[i,4]<10.0),1:size(ictable,1)),:]
-    # pretty_table(ftable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(ftable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
 
 
     # sp=sortperm(itable[:, 6]+0.0001*itable[:,5])
     # itable=itable[reverse(sp),:]
-    # pretty_table(itable[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+    # pretty_table(itable[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
 
     # cftable=table[filter(i->(!isnan(table[i,5]) && table[i,5]<1.e-6 && table[i,4]<10.0),1:size(table,1)),:]
     

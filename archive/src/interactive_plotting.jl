@@ -1,11 +1,12 @@
 # This file will contain the interactive plotting function.
-using PlotlyJS
+using PlotlyBase
 
 """
     plot_interactive(a, b)
 
 Creates an interactive plot of the values in dictionaries `a` and `b` using
-PlotlyJS. The figure contains two subplots that are synchronized with a slider.
+PlotlyBase. The figure contains two subplots that are synchronized with a slider.
+Returns a `PlotlyBase.Plot`, which can be exported with `PlotlyBase.to_html`.
 
 The top plot shows two lines, one for `a` and one for `b`, corresponding
 to the data for a given `pdt`. The bottom plot shows the difference between
@@ -20,13 +21,19 @@ function plot_interactive(a::Dict{Int, Vector{Float64}}, b::Dict{Int, Vector{Flo
     # Get common keys and sort them
     pdts = sort(collect(intersect(keys(a), keys(b))))
 
+    filter!(pdts) do pdt
+        valid = length(a[pdt]) == length(b[pdt])
+        valid || @warn "Vectors for pdt=$pdt have different lengths. Skipping."
+        valid
+    end
+
     if isempty(pdts)
-        @warn "No common keys to plot."
+        @warn "No common keys with matching vector lengths to plot."
         return
     end
 
     # Create a figure with subplots
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=true, vertical_spacing=0.1)
+    fig = Plot(Layout(Subplots(rows=2, cols=1, shared_xaxes=true, vertical_spacing=0.1)))
 
     # Add traces for each pdt
     for pdt in pdts
@@ -72,7 +79,7 @@ function plot_interactive(a::Dict{Int, Vector{Float64}}, b::Dict{Int, Vector{Flo
     steps = []
     for (i, pdt) in enumerate(pdts)
         # Each pdt corresponds to 3 traces
-        visibility = [j in (3*i-2):(3*i) for j in 1:length(fig.plot.data)]
+        visibility = [j in (3*i-2):(3*i) for j in 1:length(fig.data)]
 
         step = attr(
             label = string(pdt),

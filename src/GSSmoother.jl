@@ -1,93 +1,26 @@
-export GSSmoother,smooth
-using SparseArrays
-using LinearAlgebra
-using BenchmarkTools
+"""
+    GSSmoother(laplacian)
 
-
-struct GSSmoother
-    invh2::Float64
-    bc::NTuple{2,NTuple{2,BoundaryCondition}}
-    finest::Bool
-    function GSSmoother(invh2,nrows,ncols,bc,finest)
-        new(invh2,bc,finest)
-    end
+Red-black Gauss-Seidel smoother for a cell-centered rectangular grid. Boundary
+contributions are included in the diagonal, including mixed boundary conditions.
+"""
+struct GSSmoother{T<:AbstractFloat}
+    laplacian::Laplacian2D{T}
 end
-
-@inline function sij(denom,i,j,sl,rl,ih2,nx,ny)
-    @inbounds denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
-end
-
-using LoopVectorization
-
-
-@inline function smooth_line(nrm1,j,i1,sl,rl,ih2,denom)
-    if nrm1 >= 0
-    @fastmath @simd for i=i1:2:nrm1
-            sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
-        end
-    else
-        # @show nrm1
-        @fastmath @inbounds @simd for i=i1:2:nrm1
-            sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1]))
+function _smooth!(x,b,s::GSSmoother)
+    a=s.laplacian
+    cx,cy=a.lpx.dxm2_,a.lpy.dxm2_
+    nx,ny=size(a)
+    @inbounds for color=0:1, j=1:ny
+        for i=1+mod(color-j,2):2:nx
+            neighbors=zero(eltype(x))
+            i>1 && (neighbors+=cx*x[i-1,j])
+            i<nx && (neighbors+=cx*x[i+1,j])
+            j>1 && (neighbors+=cy*x[i,j-1])
+            j<ny && (neighbors+=cy*x[i,j+1])
+            x[i,j]=(b[i,j]+neighbors)/(a.lpx[i,i]+a.lpy[j,j])
         end
     end
+    a.allneumann && _recenter!(x)
+    x
 end
-
-
-@inline function smooth_seq(nrows,ncols,sl,rl,ih2)
-    denom=1/(4ih2)
-    nrm1=nrows-1
-
-    @inbounds for j=2:2:ncols-1
-        smooth_line(nrm1,j,2,sl,rl,ih2,denom)
-        smooth_line(nrm1,j+1,3,sl,rl,ih2,denom)
-    end
-
-
-    # @inbounds for j=2:2:ncols-1
-    #     smooth_line(nrm1,j,2,sl,rl,ih2,denom)
-    #     smooth_line(nrm1,j+1,3,sl,rl,ih2,denom)
-    # end
-    @inbounds for j=2:2:ncols-1
-        smooth_line(nrm1,j,3,sl,rl,ih2,denom)
-        smooth_line(nrm1,j+1,2,sl,rl,ih2,denom)
-    end
-
-end
-
-
-@inline function smooth_cart(nrows,ncols,sl,rl,ih2)
-    denom=1/(4ih2)
-    nrm1=nrows-1
-    ncm1=ncols-1
-    @avx for j=2:ncm1
-         for i=2:nrm1
-            sl[i,j]=denom*(rl[i,j]+ih2*(sl[i,j-1]+sl[i-1,j]+sl[i+1,j]+sl[i,j+1])) 
-        end
-    end
-
-    # @inbounds for j=2:2:ncols-1
-    #     smooth_line(nrm1,j,2,sl,rl,ih2,denom)
-    #     smooth_line(nrm1,j+1,3,sl,rl,ih2,denom)
-    # end
-    # @inbounds for j=2:2:ncols-1
-    #     smooth_line(nrm1,j,3,sl,rl,ih2,denom)
-    #     smooth_line(nrm1,j+1,2,sl,rl,ih2,denom)
-    # end
-
-end
-
-
-
-function smooth(sl,rl,a::GSSmoother)
-    ih2=a.invh2
-    (nrows,ncols)=size(sl)
-    @assert(size(rl)==size(sl))
-    denom=1/(4ih2)
-    # smooth_cart(nrows,ncols,sl,rl,ih2)
-    smooth_seq(nrows,ncols,sl,rl,ih2)
-    return
-end
-
-    
-

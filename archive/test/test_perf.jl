@@ -1,5 +1,4 @@
 using BenchmarkTools
-using LoopVectorization
 using LinearAlgebra
 using Random
 
@@ -97,7 +96,7 @@ end
 
 
 @inline function smooth_line_rb(nrm1s2,j,di,rbout,rbin,sl,rl,ih2,denom)
-    @avx for i2 in 1:nrm1s2
+    for i2 in 1:nrm1s2
         sl[i2+di,rbout,j]=denom*(rl[i2+di,rbout,j]+ih2*(sl[i2+di,rbin,j-1]+sl[i2+di,rbin,j+1]+sl[i2,rbin,j]+sl[i2+1,rbin,j]))
     end
 end

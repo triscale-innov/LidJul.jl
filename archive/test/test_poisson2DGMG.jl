@@ -4,7 +4,6 @@ using SparseArrays
 using BenchmarkTools
 using Makie
 using IterativeSolvers
-using Preconditioners
 using Random
 
 
@@ -33,15 +32,7 @@ function test_solver!(msm,Solver,solver_args,splu,b)
     p
 end
 
-function precoconstructor(A,preco)
-    if preco==CholeskyPreconditioner
-        return preco(A,4)
-    elseif preco===nothing
-        return IterativeSolvers.Identity()
-    else
-        return preco(A)
-    end
-end
+
 
 
 
@@ -141,7 +132,7 @@ function dump_measurments(msm,sname)
      # iterations=iterations[sp,:]
      nr,nc=size(table)
      println("all methods")
-     pretty_table(table[:,1:6],collect(header[1:6]);formatters=ft_printf("%5.3E",2:5),alignment=:l)
+     pretty_table(table[:,1:6];column_labels=collect(header[1:6]),formatters=[fmt__printf("%5.3E",2:5)],alignment=:l)
 end
 
 function go()

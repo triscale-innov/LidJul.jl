@@ -1,6 +1,10 @@
 using LidJul
 using Test
+using LinearAlgebra
+using SparseArrays
+using PlotlyBase
 
-include("mit_implicit.jl")
-
-# include("poisson2D.jl")
+include("test_operators.jl")
+include("test_solvers.jl")
+include("test_cavity.jl")
+include("test_plotting.jl")

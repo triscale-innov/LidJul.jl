@@ -265,7 +265,7 @@ function make_velocity(uv)
       xi=1+x*(nx-1)
       yi=1+y*(ny-1)
 
-      Makie.Point2f0(f_vx(xi,yi),f_vy(xi,yi))
+      Makie.Point2f(f_vx(xi,yi),f_vy(xi,yi))
    end
    return velocity
 end

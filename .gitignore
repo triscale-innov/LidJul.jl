@@ -9,3 +9,14 @@
 *.svg
 /deps/deps.jl
 /docs/build
+
+# Local preferences and generated experiment outputs
+.DS_Store
+LocalPreferences.toml
+*.bin
+*.pb.gz
+/interactive_*.html
+/checks.json
+
+# Maintained documentation figure
+!/docs/src/assets/cavity_reference.svg

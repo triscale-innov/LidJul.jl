@@ -1,66 +1,44 @@
-using LinearAlgebra
-using SparseArrays
+"""
+    Laplacian2D(nx, ny, Lx, Ly, left, right, bottom, top; T=Float64)
 
-export Laplacian2D,sparse_corr
-
-struct Laplacian2D
-    lpx::Laplacian1D
-    lpy::Laplacian1D
+Cell-centered negative Laplacian on a rectangle. Boundary values are homogeneous
+and ordered left, right, bottom, top. Supports `Float32` and `Float64`. A pure
+Neumann operator has the constants as its null space.
+"""
+struct Laplacian2D{T<:AbstractFloat}
+    lpx::Laplacian1D{T}
+    lpy::Laplacian1D{T}
     nx::Int
     ny::Int
-    Lx::Float64
-    Ly::Float64
+    Lx::T
+    Ly::T
     bc::NTuple{2,NTuple{2,BoundaryCondition}}
     allneumann::Bool
-    function Laplacian2D(nx,ny,Lx,Ly,bcleft,bcright,bcbottom,bctop)
-        bc=((bcleft,bcright),(bcbottom,bctop))
-        allneumann = bc[1][1]==bc[1][1]==bc[1][1]==bc[1][1]==neumann
-        allneumann && println("allneumann !!")
-        new(Laplacian1D(nx,Lx,bcleft,bcright),Laplacian1D(ny,Ly,bcbottom,bctop),nx,ny,Lx,Ly,bc,allneumann)
-    end
-
-
 end
-function push_element!(Is,Js,Vs,I,J,v)
-    push!(Is,I)
-    push!(Js,J)
-    push!(Vs,v)
+function Laplacian2D(nx::Integer,ny::Integer,Lx,Ly,left,right,bottom,top;
+                     T::Type{<:AbstractFloat}=Float64)
+    ax=Laplacian1D(nx,Lx,left,right;T)
+    ay=Laplacian1D(ny,Ly,bottom,top;T)
+    Laplacian2D{T}(ax,ay,nx,ny,T(Lx),T(Ly),((left,right),(bottom,top)),
+                   all(==(neumann),(left,right,bottom,top)))
 end
-
-
-function SparseArrays.sparse(a::Laplacian2D)
-    Is=Int[]
-    Js=Int[]
-    Vs=Float64[]
-    lpx,lpy=a.lpx,a.lpy
-    nx,ny=lpx.n_,lpy.n_
-
-    Is=Int[]
-    Js=Int[]
-    Vs=Float64[]
-
-    for i=1:nx
-        for j=1:ny
-            I=i+nx*(j-1)
-            push_element!(Is,Js,Vs,I,I,lpx[i,i]+lpy[j,j])# sp[I,I]=Lx[i,i]
-
-            i>1  && push_element!(Is,Js,Vs,I,I-1,lpx[i,i-1])#(sp[I,I-1]=Lx[i,i-1])
-            i<nx && push_element!(Is,Js,Vs,I,I+1,lpx[i,i+1])#(sp[I,I+1]=Lx[i,i+1])
-            j>1 &&  push_element!(Is,Js,Vs,I,I-ny,lpy[j,j-1])#(sp[I,I-ny]+=Ly[j,j-1])
-            j<ny && push_element!(Is,Js,Vs,I,I+ny,lpy[j,j+1])#(sp[I,I+ny]+=Ly[j,j+1])
-
-        end
-    end
-    sp=sparse(Is,Js,Vs)
-    sp
+Base.size(a::Laplacian2D)=(a.nx,a.ny)
+function SparseArrays.sparse(a::Laplacian2D{T}) where T
+    ax=sparse(SymTridiagonal(a.lpx))
+    ay=sparse(SymTridiagonal(a.lpy))
+    kron(spdiagm(0=>ones(T,a.ny)),ax)+kron(ay,spdiagm(0=>ones(T,a.nx)))
 end
 
+"""
+    sparse_corr(laplacian)
+
+Return a sparse matrix with a diagonal anchor for pure Neumann problems.
+This helper modifies the operator; use `sparse(laplacian)` to check physical
+residuals. Prefer solver constructors taking `laplacian`, which anchor internally
+and return a common zero-mean gauge without changing residual measurements.
+"""
 function sparse_corr(a::Laplacian2D)
-    sp=SparseArrays.sparse(a::Laplacian2D)
-    if a.allneumann
-        sp[1,1]=(3/2)sp[1][1]
-    end
-    sp
+    matrix=sparse(a)
+    a.allneumann && (matrix[1,1] *= 3/2)
+    matrix
 end
-
-
